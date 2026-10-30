@@ -1,0 +1,737 @@
+<Window x:Class="LolDataExtractor.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:hc="https://handyorg.github.io/handycontrol"
+        xmlns:vm="clr-namespace:LolDataExtractor.App.ViewModels"
+        xmlns:controls="clr-namespace:LolDataExtractor.App.Controls"
+        xmlns:core="clr-namespace:LolDataExtractor.Core;assembly=LolDataExtractor.Core"
+        Title="英雄联盟数据提取工具"
+        Height="900" Width="1500" MinHeight="680" MinWidth="1180"
+        WindowStartupLocation="CenterScreen"
+        Icon="pack://application:,,,/Assets/logo.ico"
+        Background="#F2F4F7"
+        FontFamily="Microsoft YaHei UI, Segoe UI"
+        TextOptions.TextFormattingMode="Display">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+    </Window.Resources>
+
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- 顶部：图标、标题、游戏目录、哈希表状态 -->
+        <Border Grid.Row="0" Style="{StaticResource PanelCard}" Margin="0,0,0,10" Padding="14">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Image Source="pack://application:,,,/Assets/logo.ico" Width="30" Height="30"
+                           RenderOptions.BitmapScalingMode="HighQuality" VerticalAlignment="Center" />
+                    <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="英雄联盟数据提取工具" FontSize="17" FontWeight="Bold" Foreground="#101828" />
+                        <TextBlock Text="{x:Static core:AppInfo.Summary}" FontSize="11"
+                                   Foreground="{StaticResource MutedBrush}" />
+                    </StackPanel>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="24,0,0,0" VerticalAlignment="Center">
+                    <TextBox Width="420" Height="32" VerticalContentAlignment="Center"
+                             Style="{StaticResource PlaceholderTextBox}"
+                             Text="{Binding DataRootText, UpdateSourceTrigger=PropertyChanged}"
+                             Tag="游戏 Game\DATA 目录"
+                             ToolTip="英雄联盟安装目录下的 Game\DATA" />
+                    <Button Content="浏览" Margin="6,0,0,0" Width="60"
+                            Style="{StaticResource SecondaryAction}" Command="{Binding BrowseRootCommand}" />
+                    <Button Content="扫描" Margin="6,0,0,0" Width="80"
+                            Style="{StaticResource PrimaryAction}" Command="{Binding ScanCommand}" />
+                </StackPanel>
+
+                <TextBlock Grid.Column="2" Text="{Binding HashStatus}" FontSize="11" Margin="12,0"
+                           VerticalAlignment="Center" Foreground="{StaticResource MutedBrush}" />
+                <Button Grid.Column="3" Content="下载哈希表" Style="{StaticResource SecondaryAction}"
+                        VerticalAlignment="Center" Command="{Binding DownloadHashesCommand}" />
+            </Grid>
+        </Border>
+
+        <!-- 主体：三栏 -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="290" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="440" />
+            </Grid.ColumnDefinitions>
+
+            <!-- WAD 列表 -->
+            <Border Grid.Column="0" Style="{StaticResource PanelCard}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Text="WAD 文件" Style="{StaticResource SectionTitle}" />
+
+                    <DockPanel Grid.Row="1" Margin="0,0,0,6">
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="{Binding SelectAllLabel}" Width="64" Style="{StaticResource SecondaryAction}"
+                                    Command="{Binding SelectAllCommand}"
+                                    ToolTip="勾选列表里当前显示的 wad（搜索时只作用在结果上）；全部勾选后按钮变为「全不选」" />
+                            <Button Content="清空" Width="54" Margin="6,0,0,0" Style="{StaticResource SecondaryAction}"
+                                    Command="{Binding SelectNoneCommand}"
+                                    ToolTip="取消列表里当前显示的 wad 的勾选（搜索时只作用在结果上）" />
+                        </StackPanel>
+                        <TextBlock Text="{Binding SelectionSummary}" FontSize="11" HorizontalAlignment="Right"
+                                   VerticalAlignment="Center" Foreground="{StaticResource MutedBrush}"
+                                   TextTrimming="CharacterEllipsis" ToolTip="{Binding SelectionSummary}" />
+                    </DockPanel>
+
+                    <TextBox Grid.Row="2" Height="28" Margin="0,0,0,6" VerticalContentAlignment="Center"
+                             Style="{StaticResource PlaceholderTextBox}" Tag="搜索 wad 名称或路径"
+                             Text="{Binding WadSearchText, UpdateSourceTrigger=PropertyChanged, Delay=200}" />
+
+                    <TreeView Grid.Row="3" BorderThickness="0" Background="Transparent" Margin="0,2,0,0"
+                              ItemsSource="{Binding WadRoots}"
+                              SelectedItemChanged="WadTree_SelectedItemChanged"
+                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                              VirtualizingStackPanel.IsVirtualizing="True"
+                              VirtualizingStackPanel.VirtualizationMode="Recycling">
+                        <TreeView.ItemContainerStyle>
+                            <Style TargetType="TreeViewItem">
+                                <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+                                <Setter Property="Padding" Value="0,0,0,0" />
+                            </Style>
+                        </TreeView.ItemContainerStyle>
+                        <TreeView.ItemTemplate>
+                            <HierarchicalDataTemplate ItemsSource="{Binding Children}">
+                                <StackPanel Orientation="Horizontal" Margin="0,1">
+                                    <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                              Margin="0,0,5,0" VerticalAlignment="Center">
+                                        <CheckBox.Style>
+                                            <Style TargetType="CheckBox">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsFolder}" Value="True">
+                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </CheckBox.Style>
+                                    </CheckBox>
+                                    <TextBlock Text="{Binding Name}" FontSize="12" VerticalAlignment="Center"
+                                               TextTrimming="CharacterEllipsis"
+                                               ToolTip="{Binding DetailToolTip}">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="FontWeight" Value="Normal" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsFolder}" Value="True">
+                                                        <Setter Property="FontWeight" Value="SemiBold" />
+                                                        <Setter Property="Foreground" Value="#475467" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                    <TextBlock Text="{Binding CountText}" FontSize="10" Margin="6,0,0,0"
+                                               VerticalAlignment="Center" Foreground="{StaticResource MutedBrush}" />
+                                </StackPanel>
+                            </HierarchicalDataTemplate>
+                        </TreeView.ItemTemplate>
+                    </TreeView>
+                </Grid>
+            </Border>
+
+            <!-- 目录树 -->
+            <Border Grid.Column="1" Style="{StaticResource PanelCard}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="170" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox Grid.Column="0" Height="30" VerticalContentAlignment="Center"
+                                 Style="{StaticResource PlaceholderTextBox}"
+                                 Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged, Delay=250}"
+                                 Tag="按路径或哈希搜索，例如 skins/base 或 .bnk" />
+                        <ComboBox Grid.Column="1" Height="30" Margin="8,0,0,0"
+                                  ItemsSource="{x:Static vm:MainViewModel.Categories}"
+                                  DisplayMemberPath="Display"
+                                  SelectedItem="{Binding SelectedCategory}" />
+                    </Grid>
+
+                    <TreeView Grid.Row="1" Margin="0,8,0,0" BorderThickness="0" Background="Transparent"
+                              ItemsSource="{Binding TreeRoots}"
+                              SelectedItemChanged="TreeView_SelectedItemChanged"
+                              PreviewMouseRightButtonDown="TreeView_PreviewMouseRightButtonDown"
+                              VirtualizingStackPanel.IsVirtualizing="True"
+                              VirtualizingStackPanel.VirtualizationMode="Recycling"
+                              ScrollViewer.HorizontalScrollBarVisibility="Auto">
+                        <TreeView.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="导出此目录（当前 wad）" Command="{Binding ExportFolderCommand}" />
+                                <MenuItem Header="导出此文件" Command="{Binding ExportCurrentCommand}" />
+                                <Separator />
+                                <MenuItem Header="把此目录设为导出前缀" Command="{Binding UseCurrentFolderCommand}" />
+                            </ContextMenu>
+                        </TreeView.ContextMenu>
+                        <TreeView.ItemContainerStyle>
+                            <Style TargetType="TreeViewItem">
+                                <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+                                <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}" />
+                            </Style>
+                        </TreeView.ItemContainerStyle>
+                        <TreeView.ItemTemplate>
+                            <HierarchicalDataTemplate ItemsSource="{Binding Children}">
+                                <StackPanel Orientation="Horizontal" Margin="0,1">
+                                    <TextBlock Text="{Binding DisplayName}" FontSize="12"
+                                               TextTrimming="CharacterEllipsis" VerticalAlignment="Center">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="FontWeight" Value="Normal" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsFolder}" Value="True">
+                                                        <Setter Property="FontWeight" Value="SemiBold" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                    <TextBlock Text="{Binding CountText}" FontSize="10" Margin="8,0,0,0"
+                                               Foreground="#98A2B3" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </HierarchicalDataTemplate>
+                        </TreeView.ItemTemplate>
+                    </TreeView>
+
+                    <TextBlock Grid.Row="2" Text="{Binding TreeSummary}" Margin="0,6,0,0" FontSize="11"
+                               Foreground="{StaticResource MutedBrush}" />
+                </Grid>
+            </Border>
+
+            <!-- 右侧：预览 / 导出设置 -->
+            <Border Grid.Column="2" Style="{StaticResource PanelCard}" Margin="0" Padding="8">
+                <TabControl x:Name="RightTabs" BorderThickness="0" Background="Transparent">
+
+                    <!-- 预览 -->
+                    <TabItem Header="预览">
+                        <Grid Margin="6,8,4,4">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+
+                            <DockPanel Grid.Row="0">
+                                <Button Content="导出此文件" DockPanel.Dock="Right" Width="88" Height="26" FontSize="11"
+                                        Style="{StaticResource SecondaryAction}"
+                                        ToolTip="导出预览中的这个条目；音频包只导出音频列表里选中的那一条流"
+                                        Command="{Binding ExportCurrentCommand}" />
+                                <StackPanel>
+                                    <TextBlock Text="{Binding PreviewTitle}" FontSize="13" FontWeight="SemiBold"
+                                               Foreground="#1D2939" TextTrimming="CharacterEllipsis"
+                                               ToolTip="{Binding PreviewTitle}" />
+                                    <TextBlock Text="{Binding PreviewSubtitle}" FontSize="11" Margin="0,2,0,0"
+                                               Foreground="{StaticResource MutedBrush}" TextTrimming="CharacterEllipsis"
+                                               ToolTip="{Binding PreviewSubtitle}" />
+                                </StackPanel>
+                            </DockPanel>
+
+                            <Border Grid.Row="1" Margin="0,8,0,0" Padding="8,6" CornerRadius="6" Background="#FFF7E6"
+                                    BorderBrush="#FDE6B8" BorderThickness="1"
+                                    Visibility="{Binding ShowMessage, Converter={StaticResource BoolToVis}}">
+                                <TextBlock Text="{Binding PreviewMessage}" TextWrapping="Wrap" FontSize="11"
+                                           Foreground="#8A5A00" />
+                            </Border>
+
+                            <Grid Grid.Row="2" Margin="0,8,0,0">
+                                <!-- 图片 -->
+                                <Border Background="#F7F9FC" CornerRadius="6" Padding="4"
+                                        Visibility="{Binding ShowImage, Converter={StaticResource BoolToVis}}">
+                                    <Image Source="{Binding PreviewImage}" Stretch="Uniform"
+                                           StretchDirection="DownOnly"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                                           RenderOptions.BitmapScalingMode="HighQuality" />
+                                </Border>
+
+                                <!-- 3D 模型 -->
+                                <Grid Visibility="{Binding ShowModel, Converter={StaticResource BoolToVis}}">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="*" />
+                                    </Grid.RowDefinitions>
+
+                                    <StackPanel Grid.Row="0"
+                                                Visibility="{Binding HasModelAssets, Converter={StaticResource BoolToVis}}">
+                                        <Grid Margin="0,0,0,4">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="34" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="贴图" FontSize="11" VerticalAlignment="Center"
+                                                       Foreground="{StaticResource MutedBrush}" />
+                                            <ComboBox Grid.Column="1" Height="26" FontSize="11"
+                                                      ItemsSource="{Binding TextureChoices}"
+                                                      SelectedItem="{Binding SelectedTextureChoice}"
+                                                      DisplayMemberPath="Title"
+                                                      ToolTip="{Binding SelectedTextureChoice.Detail}" />
+                                            <Button Grid.Column="2" Content="…" Width="26" Height="26" Margin="4,0,0,0"
+                                                    FontSize="12" Style="{StaticResource SecondaryAction}"
+                                                    ToolTip="手动选择贴图" Command="{Binding PickTextureCommand}" />
+                                        </Grid>
+
+                                        <Grid Margin="0,0,0,4">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="34" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="骨骼" FontSize="11" VerticalAlignment="Center"
+                                                       Foreground="{StaticResource MutedBrush}" />
+                                            <ComboBox Grid.Column="1" Height="26" FontSize="11"
+                                                      ItemsSource="{Binding SkeletonChoices}"
+                                                      SelectedItem="{Binding SelectedSkeletonChoice}"
+                                                      DisplayMemberPath="Title"
+                                                      ToolTip="{Binding SelectedSkeletonChoice.Detail}" />
+                                            <Button Grid.Column="2" Content="…" Width="26" Height="26" Margin="4,0,0,0"
+                                                    FontSize="12" Style="{StaticResource SecondaryAction}"
+                                                    ToolTip="手动选择骨骼" Command="{Binding PickSkeletonCommand}" />
+                                        </Grid>
+
+                                        <Grid Margin="0,0,0,4">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="34" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="动画" FontSize="11" VerticalAlignment="Center"
+                                                       Foreground="{StaticResource MutedBrush}" />
+                                            <ComboBox Grid.Column="1" Height="26" FontSize="11"
+                                                      ItemsSource="{Binding AnimationChoices}"
+                                                      SelectedItem="{Binding SelectedAnimationChoice}"
+                                                      DisplayMemberPath="Title"
+                                                      ToolTip="{Binding SelectedAnimationChoice.Detail}" />
+                                            <Button Grid.Column="2" Content="…" Width="26" Height="26" Margin="4,0,0,0"
+                                                    FontSize="12" Style="{StaticResource SecondaryAction}"
+                                                    ToolTip="手动选择动画" Command="{Binding PickAnimationCommand}" />
+                                        </Grid>
+
+                                        <Grid Margin="0,4,0,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Orientation="Horizontal">
+                                                <Button Content="播放" Width="62" Height="26" FontSize="11"
+                                                        Style="{StaticResource PrimaryAction}"
+                                                        Command="{Binding PlayAnimationCommand}" />
+                                                <Button Content="停止" Width="62" Height="26" Margin="6,0,0,0" FontSize="11"
+                                                        Style="{StaticResource SecondaryAction}"
+                                                        Command="{Binding StopAnimationCommand}" />
+                                            </StackPanel>
+                                            <TextBlock Grid.Column="1" Text="{Binding AnimationStatus}" FontSize="10"
+                                                       Margin="8,0,0,0" VerticalAlignment="Center"
+                                                       Foreground="{StaticResource MutedBrush}"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       ToolTip="{Binding AnimationStatus}" />
+                                        </Grid>
+
+                                        <!-- 每个子网格分到的贴图（多贴图皮肤才有） -->
+                                        <TextBlock Text="{Binding TextureBindingNote}" FontSize="10" Margin="0,3,0,0"
+                                                   Foreground="{StaticResource MutedBrush}"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   ToolTip="{Binding TextureBindingNote}"
+                                                   Visibility="{Binding HasTextureBinding, Converter={StaticResource BoolToVis}}" />
+                                    </StackPanel>
+
+                                    <controls:ModelPreviewView Grid.Row="1" Margin="0,6,0,0"
+                                                               Model="{Binding PreviewModel}" />
+                                </Grid>
+
+                                <!-- 音频 -->
+                                <DockPanel Visibility="{Binding ShowAudio, Converter={StaticResource BoolToVis}}">
+                                    <StackPanel DockPanel.Dock="Bottom" Margin="0,8,0,0">
+                                        <TextBlock Text="{Binding AudioStatus}" FontSize="11" TextWrapping="Wrap"
+                                                   Foreground="{StaticResource MutedBrush}" Margin="0,0,0,6" />
+                                        <Button Content="下载音频解码工具（vgmstream）" Height="28" FontSize="11"
+                                                Margin="0,0,0,4"
+                                                Style="{StaticResource SecondaryAction}"
+                                                Command="{Binding DownloadAudioToolCommand}"
+                                                Visibility="{Binding AudioToolMissing, Converter={StaticResource BoolToVis}}" />
+                                        <Button Content="下载语音识别模型（约 141 MB，只需一次）" Height="28" FontSize="11"
+                                                Margin="0,0,0,4"
+                                                Style="{StaticResource SecondaryAction}"
+                                                Command="{Binding DownloadSpeechModelCommand}"
+                                                Visibility="{Binding SpeechModelMissing, Converter={StaticResource BoolToVis}}" />
+                                        <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                                            <Button Content="播放" Width="62" Style="{StaticResource PrimaryAction}"
+                                                    Command="{Binding PlayAudioCommand}" />
+                                            <Button Content="停止" Width="54" Margin="6,0,0,0" FontSize="11"
+                                                    Style="{StaticResource SecondaryAction}"
+                                                    Command="{Binding StopAudioCommand}" />
+                                            <Button Content="转换" Width="62" Margin="12,0,0,0" FontSize="11"
+                                                    Style="{StaticResource PrimaryAction}"
+                                                    ToolTip="把选中的音频转成文字写进备注"
+                                                    Command="{Binding TranscribeCommand}" />
+                                            <Button Content="批量转换" Width="76" Margin="6,0,0,0" FontSize="11"
+                                                    Style="{StaticResource SecondaryAction}"
+                                                    ToolTip="把这个音频包里的每条流都转成文字"
+                                                    Command="{Binding TranscribeAllCommand}" />
+                                            <Button Content="停止转写" Width="76" Margin="6,0,0,0" FontSize="11"
+                                                    Command="{Binding CancelTranscribeCommand}"
+                                                    Visibility="{Binding IsTranscribing, Converter={StaticResource BoolToVis}}"
+                                                    Style="{StaticResource SecondaryAction}" />
+                                        </StackPanel>
+                                        <TextBlock Text="{Binding SpeechStatus}" FontSize="10" Margin="0,4,0,0"
+                                                   TextWrapping="Wrap" Foreground="{StaticResource AccentBrush}" />
+
+                                        <TextBlock Text="备注（自动保存，可手工修改）" Style="{StaticResource FieldLabel}"
+                                                   Margin="0,8,0,2" />
+                                        <TextBox Height="52" FontSize="11" AcceptsReturn="True"
+                                                 TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+                                                 VerticalContentAlignment="Top"
+                                                 Text="{Binding SelectedNote, UpdateSourceTrigger=PropertyChanged, Delay=400}"
+                                                 Tag="这里显示转写结果，也可自己输入" />
+                                    </StackPanel>
+
+                                    <ListBox ItemsSource="{Binding AudioTracks}"
+                                             SelectedItem="{Binding SelectedAudioTrack}"
+                                             BorderThickness="1" BorderBrush="#E4E7EC" FontSize="11"
+                                             HorizontalContentAlignment="Stretch"
+                                             ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <Grid Margin="0,2">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <Grid.RowDefinitions>
+                                                        <RowDefinition Height="Auto" />
+                                                        <RowDefinition Height="Auto" />
+                                                    </Grid.RowDefinitions>
+                                                    <TextBlock Text="{Binding Title}" FontFamily="Consolas" FontSize="11"
+                                                               VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock Grid.Column="1" Text="{Binding Detail}" FontSize="10"
+                                                               Foreground="#98A2B3" VerticalAlignment="Center"
+                                                               Margin="12,0,0,0" />
+                                                    <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Text="{Binding NotePreview}"
+                                                               FontSize="10" Margin="0,1,0,0" Foreground="#475467"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               ToolTip="{Binding Note}"
+                                                               Visibility="{Binding HasNote, Converter={StaticResource BoolToVis}}" />
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
+                                    </ListBox>
+                                </DockPanel>
+
+                                <!-- 文本 -->
+                                <TextBox Text="{Binding PreviewText, Mode=OneWay}" IsReadOnly="True"
+                                         Visibility="{Binding ShowText, Converter={StaticResource BoolToVis}}"
+                                         FontFamily="Consolas" FontSize="11" TextWrapping="Wrap"
+                                         VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                                         BorderBrush="#E4E7EC" Background="#FBFCFD" />
+
+                                <!-- 十六进制 -->
+                                <TextBox Text="{Binding PreviewHex, Mode=OneWay}" IsReadOnly="True"
+                                         Visibility="{Binding ShowHex, Converter={StaticResource BoolToVis}}"
+                                         FontFamily="Consolas" FontSize="11" TextWrapping="NoWrap"
+                                         AcceptsReturn="True"
+                                         VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                                         BorderBrush="#E4E7EC" Background="#FBFCFD" />
+                            </Grid>
+                        </Grid>
+                    </TabItem>
+
+                    <!-- 导出设置与日志 -->
+                    <TabItem Header="导出与日志">
+                        <Grid Margin="6,8,4,4">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <!-- 设置区（可滚动） -->
+                            <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto"
+                                          HorizontalScrollBarVisibility="Disabled">
+                                <StackPanel Margin="0,0,4,0">
+                                    <TextBlock Text="导出范围" Style="{StaticResource SectionTitle}" Margin="0,0,0,4" />
+                                    <ComboBox Height="28" ItemsSource="{x:Static vm:MainViewModel.ExportScopes}"
+                                              SelectedItem="{Binding SelectedExportScope}" />
+
+                                    <TextBlock Text="输出目录" Style="{StaticResource FieldLabel}" />
+                                    <DockPanel>
+                                        <Button Content="浏览" DockPanel.Dock="Right" Width="54" Height="28"
+                                                Margin="6,0,0,0" Style="{StaticResource SecondaryAction}"
+                                                Command="{Binding BrowseOutputCommand}" />
+                                        <TextBox Height="28" VerticalContentAlignment="Center"
+                                                 Style="{StaticResource PlaceholderTextBox}"
+                                                 Text="{Binding OutputRootText, UpdateSourceTrigger=PropertyChanged}"
+                                                 Tag="选择导出目录" />
+                                    </DockPanel>
+
+                                    <TextBlock Text="导出类别（全选表示不过滤）" Style="{StaticResource FieldLabel}" />
+                                    <ItemsControl ItemsSource="{Binding ExportCategories}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <WrapPanel />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <CheckBox Content="{Binding Display}"
+                                                          IsChecked="{Binding IsChecked, UpdateSourceTrigger=PropertyChanged}"
+                                                          FontSize="12" Margin="0,0,14,2" />
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                        <Button Content="全选" Width="52" Height="26" FontSize="11" Padding="0"
+                                                VerticalContentAlignment="Center"
+                                                Style="{StaticResource SecondaryAction}"
+                                                Command="{Binding SelectAllCategoriesCommand}" />
+                                        <Button Content="全不选" Width="60" Height="26" Margin="6,0,0,0" FontSize="11" Padding="0"
+                                                VerticalContentAlignment="Center"
+                                                Style="{StaticResource SecondaryAction}"
+                                                Command="{Binding SelectNoCategoriesCommand}" />
+                                        <Button Content="仅纹理" Width="62" Height="26" Margin="12,0,0,0" FontSize="11" Padding="0"
+                                                VerticalContentAlignment="Center"
+                                                Style="{StaticResource SecondaryAction}"
+                                                Command="{Binding SelectCategoryPresetCommand}" CommandParameter="texture" />
+                                        <Button Content="仅模型" Width="62" Height="26" Margin="6,0,0,0" FontSize="11" Padding="0"
+                                                VerticalContentAlignment="Center"
+                                                Style="{StaticResource SecondaryAction}"
+                                                Command="{Binding SelectCategoryPresetCommand}" CommandParameter="model" />
+                                        <Button Content="仅音频" Width="62" Height="26" Margin="6,0,0,0" FontSize="11" Padding="0"
+                                                VerticalContentAlignment="Center"
+                                                Style="{StaticResource SecondaryAction}"
+                                                Command="{Binding SelectCategoryPresetCommand}" CommandParameter="audio" />
+                                    </StackPanel>
+
+                                    <TextBlock Text="目录前缀（只导出该目录下的文件，留空表示全部）"
+                                               Style="{StaticResource FieldLabel}" />
+                                    <DockPanel>
+                                        <Button Content="用当前目录" DockPanel.Dock="Right" Width="82" Height="28"
+                                                Margin="6,0,0,0" FontSize="11" Style="{StaticResource SecondaryAction}"
+                                                Command="{Binding UseCurrentFolderCommand}" />
+                                        <TextBox Height="28" VerticalContentAlignment="Center"
+                                                 Style="{StaticResource PlaceholderTextBox}"
+                                                 Text="{Binding ExportPathPrefix, UpdateSourceTrigger=PropertyChanged}"
+                                                 Tag="例如 assets/characters/ahri" />
+                                    </DockPanel>
+
+                                    <!-- 路径过滤与扩展名并排，省出一行高度 -->
+                                    <Grid Margin="0,6,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="10" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+                                        <TextBlock Text="路径过滤（通配符）" Style="{StaticResource FieldLabel}"
+                                                   Margin="0,0,0,3"
+                                                   ToolTip="留空表示全部。例如 *skins/base/* 或 *.bnk" />
+                                        <TextBlock Grid.Column="2" Text="扩展名（逗号分隔）"
+                                                   Style="{StaticResource FieldLabel}" Margin="0,0,0,3"
+                                                   ToolTip="留空表示全部。例如 skn,skl,tex" />
+                                        <TextBox Grid.Row="1" Height="28" VerticalContentAlignment="Center"
+                                                 Style="{StaticResource PlaceholderTextBox}"
+                                                 Text="{Binding ExportPattern, UpdateSourceTrigger=PropertyChanged}"
+                                                 Tag="*skins/base/*" ToolTip="留空表示全部" />
+                                        <TextBox Grid.Row="1" Grid.Column="2" Height="28" VerticalContentAlignment="Center"
+                                                 Style="{StaticResource PlaceholderTextBox}"
+                                                 Text="{Binding ExportExtensions, UpdateSourceTrigger=PropertyChanged}"
+                                                 Tag="skn,skl,tex" ToolTip="留空表示全部" />
+                                    </Grid>
+
+                                    <!-- 线程数与音频格式并排，省出一行高度 -->
+                                    <Grid Margin="0,5,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="56" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="线程数" VerticalAlignment="Center" FontSize="12"
+                                                   Foreground="{StaticResource MutedBrush}" />
+                                        <TextBox Grid.Column="1" Height="28" Margin="8,0,0,0" FontSize="12"
+                                                 VerticalContentAlignment="Center"
+                                                 Style="{StaticResource PlaceholderTextBox}" Tag="16"
+                                                 Text="{Binding ThreadCount, UpdateSourceTrigger=PropertyChanged}" />
+                                        <TextBlock Grid.Column="2" Text="音频格式" Margin="12,0,0,0" VerticalAlignment="Center"
+                                                   FontSize="12" Foreground="{StaticResource MutedBrush}" />
+                                        <ComboBox Grid.Column="3" Height="28" Margin="8,0,0,0" FontSize="12"
+                                                  ItemsSource="{x:Static vm:MainViewModel.AudioFormats}"
+                                                  SelectedItem="{Binding SelectedAudioFormat}"
+                                                  DisplayMemberPath="Title" />
+                                    </Grid>
+
+                                    <!-- 选项：三列两行 -->
+                                    <Grid Margin="0,5,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+                                        <CheckBox Content="按 wad 建立子目录" FontSize="12"
+                                                  ToolTip="每个 wad 的文件导出到以 wad 命名的子目录"
+                                                  IsChecked="{Binding OptionGroupByWad}" />
+                                        <CheckBox Grid.Column="1" Content="扁平存放" FontSize="12"
+                                                  ToolTip="不保留资源目录结构，全部放到导出目录下"
+                                                  IsChecked="{Binding OptionFlat}" />
+                                        <CheckBox Grid.Column="2" Content="跳过已存在" FontSize="12"
+                                                  ToolTip="跳过已经导出过的文件"
+                                                  IsChecked="{Binding OptionSkipExisting}" />
+                                        <CheckBox Grid.Row="1" Content="包含未命名条目" FontSize="12" Margin="0,6,0,0"
+                                                  ToolTip="未命名的条目以哈希命名导出"
+                                                  IsChecked="{Binding OptionIncludeUnnamed}" />
+                                        <CheckBox Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" FontSize="12"
+                                                  Margin="0,6,0,0" Content="贴图转 PNG"
+                                                  ToolTip="关闭后纹理按 wad 里的原始格式导出（.tex / .dds）"
+                                                  IsChecked="{Binding OptionConvertTextures}" />
+                                    </Grid>
+                                </StackPanel>
+                            </ScrollViewer>
+
+                            <!-- 主操作（固定在设置区下方，不用滚动就能点到） -->
+                            <Grid Grid.Row="1" Margin="0,8,0,0">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Button Content="开始导出" Height="34" Style="{StaticResource PrimaryAction}"
+                                        Command="{Binding ExportCommand}"
+                                        ToolTip="按当前设置导出所选 wad 的条目" />
+                                <Button Grid.Column="1" Content="打开输出目录" Height="34" Margin="8,0,0,0"
+                                        FontSize="12" Style="{StaticResource SecondaryAction}"
+                                        Command="{Binding OpenOutputCommand}" />
+                                <Button Grid.Row="1" Grid.ColumnSpan="2" Height="30" Margin="0,6,0,0"
+                                        FontSize="12" Style="{StaticResource SecondaryAction}"
+                                        Content="只导出图片 / 音频（PNG + MP3）"
+                                        Command="{Binding ExportMediaCommand}"
+                                        ToolTip="跳过模型、数据等原始文件，只导出二次解析后可直接查看的图片与音频" />
+                            </Grid>
+
+                            <!-- 进度区 -->
+                            <Border Grid.Row="2" Margin="0,6,0,0" Padding="10,6" CornerRadius="6"
+                                    Background="#F7F9FC" BorderBrush="{StaticResource PanelBorder}" BorderThickness="1">
+                                <StackPanel>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="导出进度" FontSize="12" FontWeight="SemiBold" Foreground="#1D2939" />
+                                        <TextBlock Grid.Column="1" Text="{Binding ProgressValue, StringFormat={}{0:F0}%}"
+                                                   FontSize="12" Foreground="{StaticResource AccentBrush}" />
+                                    </Grid>
+
+                                    <ProgressBar Height="8" Margin="0,4,0,0" Minimum="0" Maximum="100"
+                                                 Value="{Binding ProgressValue, Mode=OneWay}"
+                                                 Foreground="{StaticResource AccentBrush}"
+                                                 Background="#E4E7EC" BorderThickness="0">
+                                        <ProgressBar.Template>
+                                            <ControlTemplate TargetType="ProgressBar">
+                                                <Border Background="{TemplateBinding Background}" CornerRadius="4"
+                                                        ClipToBounds="True">
+                                                    <Grid>
+                                                        <Rectangle x:Name="PART_Track" />
+                                                        <Rectangle x:Name="PART_Indicator" HorizontalAlignment="Left"
+                                                                   Fill="{TemplateBinding Foreground}"
+                                                                   RadiusX="4" RadiusY="4" />
+                                                    </Grid>
+                                                </Border>
+                                            </ControlTemplate>
+                                        </ProgressBar.Template>
+                                    </ProgressBar>
+
+                                    <Grid Margin="0,5,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="{Binding StatusText}" FontSize="11" VerticalAlignment="Center"
+                                                   Foreground="{StaticResource MutedBrush}"
+                                                   TextTrimming="CharacterEllipsis" ToolTip="{Binding StatusText}" />
+                                        <Button Grid.Column="1" Content="取消" Width="70" Height="26" FontSize="11"
+                                                Margin="8,0,0,0" Style="{StaticResource SecondaryAction}"
+                                                Command="{Binding CancelCommand}"
+                                                Visibility="{Binding IsBusy, Converter={StaticResource BoolToVis}}" />
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- 日志区 -->
+                            <Grid Grid.Row="3" Margin="0,10,0,0">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="96" />
+                                </Grid.RowDefinitions>
+
+                                <Grid Grid.Row="0" Margin="0,0,0,6">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="日志" Style="{StaticResource SectionTitle}" VerticalAlignment="Center"
+                                               Margin="0" />
+                                    <Button Grid.Column="1" Content="清空" Width="52" Height="24" FontSize="11"
+                                            Style="{StaticResource SecondaryAction}"
+                                            Command="{Binding ClearLogCommand}" />
+                                </Grid>
+
+                                <ListBox Grid.Row="1" ItemsSource="{Binding Logs}" BorderThickness="1" BorderBrush="#E4E7EC"
+                                         FontSize="11" Background="#FBFCFD"
+                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding}" TextWrapping="Wrap" FontSize="11" />
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </Grid>
+                        </Grid>
+                    </TabItem>
+                </TabControl>
+            </Border>
+        </Grid>
+
+        <!-- 状态栏 -->
+        <Border Grid.Row="2" Margin="0,10,0,0" Padding="12,8" CornerRadius="8" Background="#FFFFFF"
+                BorderBrush="{StaticResource PanelBorder}" BorderThickness="1">
+            <TextBlock Text="{Binding StatusText}" FontSize="12" Foreground="#344054"
+                       TextTrimming="CharacterEllipsis" />
+        </Border>
+    </Grid>
+</Window>

@@ -1,0 +1,11 @@
+# Everything in this repository is UTF-8 without BOM and LF, except batch files,
+# which Windows needs as CRLF (see .editorconfig and tools/check.ps1).
+* text=auto eol=lf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+*.png binary
+*.jpg binary
+*.ico binary
+*.wad.client binary
+*.bin binary

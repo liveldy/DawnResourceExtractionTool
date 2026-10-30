@@ -1,0 +1,18 @@
+# build output
+bin/
+obj/
+dist/
+out/
+*.user
+*.suo
+.vs/
+
+# tool data (hash tables / name index are downloaded, not versioned)
+data/
+!data/.gitkeep
+
+# large local fixtures (game assets stay out of the repository)
+tests/testdata/*.wad.client
+
+# self check artefacts written next to screenshots
+*.log

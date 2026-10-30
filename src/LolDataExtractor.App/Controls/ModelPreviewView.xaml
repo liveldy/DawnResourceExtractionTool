@@ -1,0 +1,36 @@
+<UserControl x:Class="LolDataExtractor.App.Controls.ModelPreviewView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:h="http://helix-toolkit.org/wpf">
+    <Grid Background="#F7F9FC">
+        <h:HelixViewport3D x:Name="Viewport"
+                           Background="#F1F4F9"
+                           ShowCoordinateSystem="False"
+                           ShowViewCube="False"
+                           IsHeadLightEnabled="False"
+                           ZoomExtentsWhenLoaded="False"
+                           RotationSensitivity="1"
+                           ZoomSensitivity="1">
+            <ModelVisual3D x:Name="Visual" />
+        </h:HelixViewport3D>
+
+        <Button x:Name="ResetViewButton"
+                Content="复位视角"
+                FontSize="11"
+                Foreground="#475467"
+                Background="#FFFFFFFF"
+                BorderBrush="#E1E6EF"
+                Padding="8,3"
+                Margin="8"
+                Cursor="Hand"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Top"
+                Visibility="Collapsed"
+                Click="ResetViewClick" />
+
+        <TextBlock x:Name="Hint" Text="左键拖拽旋转 · 右键拖拽平移 · 滚轮缩放"
+                   FontSize="11" Foreground="#98A2B3" Margin="8"
+                   HorizontalAlignment="Left" VerticalAlignment="Bottom"
+                   IsHitTestVisible="False" />
+    </Grid>
+</UserControl>
