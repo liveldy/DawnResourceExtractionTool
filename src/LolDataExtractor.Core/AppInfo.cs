@@ -14,7 +14,7 @@ public static class AppInfo
     /// <summary>Release date as <c>yyyy-MM-dd</c>.</summary>
     public static string ReleaseDate { get; } = ReadReleaseDate();
 
-    /// <summary>One line for the header: "版本 1.0.0 · 2026-10-30 发布".</summary>
+    /// <summary>One line for the header: "版本 1.0.1 · 2026-10-30 发布".</summary>
     public static string Summary => $"版本 {Version} · {ReleaseDate} 发布";
 
     private static string ReadVersion()
@@ -23,13 +23,13 @@ public static class AppInfo
         var informational = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
         if (!string.IsNullOrWhiteSpace(informational))
         {
-            // "1.0.0+<commit>" when source revision information is present.
+            // "1.0.1+<commit>" when source revision information is present.
             var plus = informational.IndexOf('+');
             return plus > 0 ? informational[..plus] : informational;
         }
 
         var version = assembly.GetName().Version;
-        return version is null ? "1.0.0" : $"{version.Major}.{version.Minor}.{version.Build}";
+        return version is null ? "1.0.1" : $"{version.Major}.{version.Minor}.{version.Build}";
     }
 
     private static string ReadReleaseDate()

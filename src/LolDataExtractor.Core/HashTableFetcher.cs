@@ -51,6 +51,35 @@ public sealed class HashTableFetcher
         return null;
     }
 
+    /// <summary>
+    /// Every text hash table in a hash table directory, ordered by part number: the downloaded
+    /// <c>hashes.game.txt.0</c>, <c>.1</c> … parts plus any <c>*.txt</c> table the user dropped in
+    /// by hand. The parts end in a digit, not in <c>.txt</c>, so a <c>*.txt</c> glob finds none of
+    /// them and matching has to be done on the name itself.
+    /// </summary>
+    public static IReadOnlyList<string> FindTextTables(string directory)
+    {
+        if (!Directory.Exists(directory)) return Array.Empty<string>();
+
+        return Directory.EnumerateFiles(directory)
+            .Where(path => IsTextTable(Path.GetFileName(path)))
+            .OrderBy(PartNumber)
+            .ThenBy(path => path, StringComparer.Ordinal)
+            .ToArray();
+    }
+
+    private static bool IsTextTable(string name) =>
+        name.EndsWith(".txt", StringComparison.OrdinalIgnoreCase)
+        || (name.StartsWith(GamePrefix + ".", StringComparison.Ordinal) && PartNumber(name) >= 0);
+
+    /// <summary>The numeric suffix of a part file; "-1" for a name without one.</summary>
+    private static int PartNumber(string path)
+    {
+        var name = Path.GetFileName(path);
+        var dot = name.LastIndexOf('.');
+        return dot >= 0 && int.TryParse(name[(dot + 1)..], out var number) ? number : -1;
+    }
+
     private static Uri DirectoryUri => new(
         $"https://api.github.com/repos/{RepositoryOwner}/{RepositoryName}/contents/{HashesDirectory}");
 

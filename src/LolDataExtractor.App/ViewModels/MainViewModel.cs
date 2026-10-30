@@ -2143,7 +2143,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             Log($"哈希表就绪：下载 {result.Downloaded} 个、跳过 {result.Skipped} 个，共 {ExtractionSummary.Format(result.Bytes)}");
 
             StatusText = "生成名称索引…";
-            var textFiles = Directory.GetFiles(_settings.HashTableDirectory, "*.txt");
+            var textFiles = HashTableFetcher.FindTextTables(_settings.HashTableDirectory);
+            // Never overwrite a working index with an empty one: a directory the fetch did not
+            // fill (or a stale one) used to produce a 20 byte index and hash-only names.
+            if (textFiles.Count == 0)
+                throw new InvalidOperationException($"哈希表目录中没有文本文件，索引未改动：{_settings.HashTableDirectory}");
             var table = await Task.Run(() => NameTable.LoadTextFiles(textFiles));
 
             if (Wads.Count > 0)

@@ -120,12 +120,10 @@ internal static class Program
             }
         }
 
-        var textFiles = Directory.Exists(settings.HashTableDirectory)
-            ? Directory.GetFiles(settings.HashTableDirectory, "*.txt")
-            : Array.Empty<string>();
-        if (textFiles.Length > 0)
+        var textFiles = HashTableFetcher.FindTextTables(settings.HashTableDirectory);
+        if (textFiles.Count > 0)
         {
-            Console.WriteLine($"正在解析文本哈希表（{textFiles.Length} 个文件）…");
+            Console.WriteLine($"正在解析文本哈希表（{textFiles.Count} 个文件）…");
             var table = NameTable.LoadTextFiles(textFiles);
             Console.WriteLine($"已载入 {table.Count} 条路径");
             return table;
@@ -333,8 +331,8 @@ internal static class Program
                 return BuildIndex(settings, parsed, directory, index, scope: parsed.Has("scope"));
             case "stats":
             {
-                var files = Directory.Exists(directory) ? Directory.GetFiles(directory, "*.txt") : Array.Empty<string>();
-                Console.WriteLine($"哈希表目录 {directory}: {files.Length} 个文件，{ExtractionSummary.Format(files.Sum(f => new FileInfo(f).Length))}");
+                var files = HashTableFetcher.FindTextTables(directory);
+                Console.WriteLine($"哈希表目录 {directory}: {files.Count} 个文件，{ExtractionSummary.Format(files.Sum(f => new FileInfo(f).Length))}");
                 if (File.Exists(index))
                 {
                     var table = NameTable.LoadBinary(index);
@@ -351,8 +349,8 @@ internal static class Program
 
     private static int BuildIndex(AppSettings settings, CommandLine parsed, string directory, string index, bool scope)
     {
-        var textFiles = Directory.Exists(directory) ? Directory.GetFiles(directory, "*.txt") : Array.Empty<string>();
-        if (textFiles.Length == 0)
+        var textFiles = HashTableFetcher.FindTextTables(directory);
+        if (textFiles.Count == 0)
         {
             Console.Error.WriteLine($"目录 {directory} 中没有哈希表文本文件，请先运行 loldata hashes fetch");
             return 1;
