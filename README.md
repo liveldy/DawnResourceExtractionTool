@@ -233,3 +233,8 @@ tests/LolDataExtractor.Tests 单元与集成测试（合成 wad / 合成 bnk / �
 tools/check.ps1             一键体检
 tools/make-icon.ps1         logo.png → logo.ico
 ```
+
+## 许可证
+
+GNU General Public License v3.0，见 [LICENSE](LICENSE)。本项目只读取本机游戏资源、不修改游戏文件，
+也不分发任何 Riot Games 的素材；导出的资源版权归 Riot Games 所有，仅供个人学习与研究使用。
