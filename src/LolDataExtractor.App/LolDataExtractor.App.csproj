@@ -16,6 +16,11 @@
     <Resource Include="Assets\logo.ico" />
   </ItemGroup>
 
+  <!-- Native libraries ship in runtimes\<rid>; this puts that folder on the loader path first. -->
+  <ItemGroup>
+    <Compile Include="..\LolDataExtractor.Shared\NativeSearchPath.cs" Link="NativeSearchPath.cs" />
+  </ItemGroup>
+
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <AssemblyName>LolDataExtractor</AssemblyName>

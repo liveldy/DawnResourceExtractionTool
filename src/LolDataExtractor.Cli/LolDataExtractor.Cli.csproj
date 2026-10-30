@@ -4,6 +4,11 @@
     <ProjectReference Include="..\LolDataExtractor.Core\LolDataExtractor.Core.csproj" />
   </ItemGroup>
 
+  <!-- Native libraries ship in runtimes\<rid>; this puts that folder on the loader path first. -->
+  <ItemGroup>
+    <Compile Include="..\LolDataExtractor.Shared\NativeSearchPath.cs" Link="NativeSearchPath.cs" />
+  </ItemGroup>
+
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <AssemblyName>loldata</AssemblyName>

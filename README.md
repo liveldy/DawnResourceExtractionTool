@@ -16,7 +16,7 @@
   音频包（`.bnk` 与语音包 `.wpk`）列出每条流并试听，文本（`.txt` / `.xml` / `.json` / `.lua` …）只读显示，其余给十六进制。
 - **模型动画**：打开模型时按目录就近自动匹配骨骼（`.skl`）、该皮肤的全部动画（`.anm`）与贴图（`.tex`），
   三者在预览页各给一个下拉列表，可随时换；「…」按钮还能跨 wad 手动挑条目。
-  一张皮肤有多张贴图时（如阿狸的身体与尾巴），按子网格名字把每张图贴到对应部件上，控制条下方列出分配结果
+  一张皮肤有多张贴图时，按子网格名字把每张图贴到对应部件上，控制条下方列出分配结果
   （贴图按命名约定区分颜色图与遮罩/粗糙度/加载图，遮罩类永不贴到网格上）。选中动画即可播放，
   骨骼蒙皮逐帧计算（30 fps 采样，含根关节位移），播放/停止与帧进度都在控制条上。
 - **导出（二次解析过的格式）**：贴图 `.tex` / `.dds` 直接写成 PNG，音频 `.wem` / `.bnk` / `.wpk` 直接写成 MP3
@@ -188,28 +188,15 @@ dotnet test tests\LolDataExtractor.Tests      # 182 项：哈希/名称表/识�
                                              # 树构建/贴图解码/Wwise 与 WPK 解析/模型解析/骨骼动画/资源匹配/贴图分配/
                                              # PNG 编码/媒体格式规划/备注存储/转写语言/版本信息/预览分派/编码守卫
 tools\check.ps1                               # 构建 + 测试 + 编码体检（UTF-8 无 BOM + LF）
+tools\package.ps1                             # 打发布包：单文件 exe + runtimes\win-x64 原生库 + 带文件夹的 zip
 tools\make-icon.ps1                           # 由 logo.png 重新生成 Assets\logo.ico（多尺寸 BMP 帧）
 ```
 
-界面带无人值守自检，走完整流程并输出截图：
-
-```powershell
-dist\app\LolDataExtractor.exe --root "D:\...\Game\DATA" --export-once D:\tmp\gui --screenshot D:\tmp\ui.png
-dist\app\LolDataExtractor.exe --root tests\testdata --export-once D:\tmp\tex --export-scope all --export-preset texture
-dist\app\LolDataExtractor.exe --root tests\testdata --select "ahri_base_tx_cm.tex" --screenshot D:\tmp\tex.png
-dist\app\LolDataExtractor.exe --root tests\testdata --select "ahri_base.skn" --play-anim --screenshot D:\tmp\model.png
-dist\app\LolDataExtractor.exe --root tests\testdata --select "ahri_base.skn" --pick --screenshot D:\tmp\picker.png
-dist\app\LolDataExtractor.exe --root tests\testdata --wad Ahri.wad.client --tab=export --screenshot D:\tmp\export.png
-dist\app\LolDataExtractor.exe --root tests\testdata --wad Ahri.wad.client `
-    --export-prefix "assets/characters/ahri/skins/base" --screenshot D:\tmp\prefix.png
-dist\app\LolDataExtractor.exe --root tests\testdata --select "ahri_base_sfx_audio.bnk" --audio-smoke --screenshot D:\tmp\audio.png
-dist\app\LolDataExtractor.exe --wad Ahri.zh_CN.wad.client --select "ahri_skin301_vo_audio.wpk" `
-    --transcribe --screenshot D:\tmp\notes.png
-dist\app\LolDataExtractor.exe --root tests\testdata --select-all --screenshot D:\tmp\wads.png
-dist\app\LolDataExtractor.exe --wad-filter Ahri --select-all --tab=export --screenshot D:\tmp\wads-filtered.png
-dist\app\LolDataExtractor.exe --wad Ahri.zh_CN.wad.client --select "ahri_skin301_vo_audio.wpk" `
-    --export-stream D:\tmp\one-stream --screenshot D:\tmp\one-stream.png
-```
+发布包用 `tools\package.ps1` 生成（版本号取自 `Directory.Build.props`）：程序目录里只有
+`LolDataExtractor.exe`，所有原生 DLL 都收在 `runtimes\win-x64\`，zip 里再套一层同名文件夹，
+解压出来就是一整个目录而不是一堆散件。原生库位置由 `src/LolDataExtractor.Shared/NativeSearchPath.cs`
+在进程启动时注册（`SetDllDirectory` + 逐程序集的 P/Invoke 解析器），Whisper.net 自己会在
+`runtimes\<rid>\` 里找。
 
 截图旁边会同时写一份同名 `.log`（导出/转写/自检的日志行），脚本核对数字不必读像素；
 `--wad-filter` 先按名称过滤 wad 列表再执行 `--select-all`，`--export-stream` 走的是预览页「导出此文件」，
@@ -227,6 +214,7 @@ src/LolDataExtractor.Core   解析、预览解码与导出核心（无 UI 依赖
   AudioNoteStore.cs         音频备注的存取（audio-notes.json）
   AppInfo.cs                版本号与发布日期（取自程序集属性，界面副标题与 CLI info 共用）
 src/LolDataExtractor.Cli    loldata 命令行
+src/LolDataExtractor.Shared 两个可执行文件共用的启动代码（原生库搜索路径注册）
 src/LolDataExtractor.App    WPF + HandyControl 界面（Controls/ModelPreviewView 为 3D 预览，
                             Services/ModelScene 负责逐帧蒙皮，Controls/EntryPickerWindow 为手动选资源）
 tests/LolDataExtractor.Tests 单元与集成测试（合成 wad / 合成 bnk / 合成 DDS / 真实 Ahri wad 骨骼动画）
