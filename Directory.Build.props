@@ -3,8 +3,8 @@
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <Version>1.0.2</Version>
-    <ReleaseDate>2026-10-30</ReleaseDate>
+    <Version>1.0.3</Version>
+    <ReleaseDate>2026-10-31</ReleaseDate>
     <Product>英雄联盟数据提取工具</Product>
     <Authors>Nelson</Authors>
     <NeutralLanguage>zh-Hans</NeutralLanguage>

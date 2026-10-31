@@ -1,4 +1,4 @@
-# 英雄联盟数据提取工具 (LoL Data Extractor) 1.0.2
+# 英雄联盟数据提取工具 (LoL Data Extractor) 1.0.3
 
 读取 `英雄联盟\Game\DATA` 下的 wad v3 资源包，把 64 位路径哈希还原成真实资源路径，
 按树形目录浏览、就地预览、按需筛选和多线程解包。图形界面面向日常操作，命令行面向批处理与脚本。
@@ -80,7 +80,8 @@ dotnet run --project src/LolDataExtractor.App
 dist\app\LolDataExtractor.exe
 ```
 
-1. 顶部填写或浏览到 `...\英雄联盟（含经典模式）\Game\DATA`，点「扫描」。
+1. 顶部填写或浏览到 `...\英雄联盟（含经典模式）\Game\DATA`，点「扫描」。填安装目录或 `Game` 目录也行，
+   框里会原样保留你填的路径，下面一行小字写着这次实际扫描的 `Game\DATA`。
 2. 首次使用点「下载哈希表」（约 222 MB，只下一次；已存在的分片自动跳过）。
 3. 左侧勾选 wad（「全选」只勾当前显示的项，搜索后就是搜索结果；全选后按钮变为「全不选」），
    中间在目录树里点开文件，右侧「预览」页查看内容。
@@ -188,7 +189,7 @@ dotnet run --project src/LolDataExtractor.Cli -- media --wad Ahri.zh_CN --out D:
 
 ```powershell
 dotnet build LolDataExtractor.sln
-dotnet test tests\LolDataExtractor.Tests      # 182 项：哈希/名称表/识别/过滤/安装目录/合成 wad 解包/
+dotnet test tests\LolDataExtractor.Tests      # 192 项：哈希/名称表/识别/过滤/安装目录/合成 wad 解包/
                                              # 树构建/贴图解码/Wwise 与 WPK 解析/模型解析/骨骼动画/资源匹配/贴图分配/
                                              # PNG 编码/媒体格式规划/备注存储/转写语言/版本信息/预览分派/编码守卫
 tools\check.ps1                               # 构建 + 测试 + 编码体检（UTF-8 无 BOM + LF）

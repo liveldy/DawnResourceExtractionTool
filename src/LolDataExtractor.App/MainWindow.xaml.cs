@@ -27,6 +27,14 @@ public partial class MainWindow : Window
     /// <summary>Self test helper: switches the right panel to the export / log tab.</summary>
     public void ShowExportTab() => RightTabs.SelectedIndex = 1;
 
+    /// <summary>Typing a folder and pressing Enter scans it, like the「扫描」button does.</summary>
+    private void DataRootBox_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (e.Key != System.Windows.Input.Key.Enter) return;
+        e.Handled = true;
+        if (ViewModel.ScanCommand.CanExecute(null)) ViewModel.ScanCommand.Execute(null);
+    }
+
     /// <summary>Selecting a wad leaf in the wad tree browses it; folder rows are ignored.</summary>
     private void WadTree_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
     {

@@ -33,6 +33,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private WadItem? _selectedWad;
     private TreeNodeVm? _selectedNode;
     private string _dataRootText = string.Empty;
+    private string _gameRootHint = string.Empty;
     private string _outputRootText = string.Empty;
     private string _hashStatus = "名称索引：未生成";
     private string _searchText = string.Empty;
@@ -267,6 +268,16 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     {
         get => _dataRootText;
         set => SetProperty(ref _dataRootText, value);
+    }
+
+    /// <summary>
+    /// The DATA folder actually being scanned. The box may hold an install folder or a Game folder:
+    /// those are recognized as their DATA folder rather than overwriting what the user picked.
+    /// </summary>
+    public string GameRootHint
+    {
+        get => _gameRootHint;
+        private set => SetProperty(ref _gameRootHint, value);
     }
 
     public string OutputRootText
@@ -768,7 +779,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     private async Task ScanAsync()
     {
-        var typed = DataRootText;
+        var typed = DataRootText?.Trim() ?? string.Empty;
         var root = LolInstall.TryLocate(typed);
         if (root is null)
         {
@@ -776,13 +787,19 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             StatusText = string.IsNullOrWhiteSpace(typed)
                 ? "请先填写游戏 Game\\DATA 目录"
                 : $"未能识别游戏目录：{typed}（请选到 …\\Game\\DATA）";
+            GameRootHint = string.IsNullOrWhiteSpace(typed) ? "未设置游戏目录" : "未识别，请选到 …\\Game\\DATA";
             Log(StatusText);
             return;
         }
 
-        DataRootText = root;
-        _settings.DataRoot = root;
+        // The box keeps what the user picked: an install folder or a Game folder already means its
+        // DATA folder, and every wad of an installation lives there. Rewriting the box made a switch
+        // that had worked look like it was rejected, so the resolved folder is reported instead.
+        _settings.DataRoot = Path.IsPathRooted(typed) ? typed : root;
         _settings.Save();
+        var rewritten = !string.Equals(typed.Trim('"'), root, StringComparison.OrdinalIgnoreCase);
+        GameRootHint = rewritten ? $"已识别为游戏 DATA 目录：{root}" : $"游戏 DATA 目录：{root}";
+        if (rewritten) Log($"游戏目录：{typed} → {root}");
 
         await RunBusyAsync("扫描 wad 文件…", async () =>
         {

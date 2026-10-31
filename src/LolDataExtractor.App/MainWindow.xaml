@@ -43,16 +43,22 @@
                     </StackPanel>
                 </StackPanel>
 
-                <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="24,0,0,0" VerticalAlignment="Center">
-                    <TextBox Width="420" Height="32" VerticalContentAlignment="Center"
-                             Style="{StaticResource PlaceholderTextBox}"
-                             Text="{Binding DataRootText, UpdateSourceTrigger=PropertyChanged}"
-                             Tag="游戏 Game\DATA 目录"
-                             ToolTip="英雄联盟安装目录下的 Game\DATA" />
-                    <Button Content="浏览" Margin="6,0,0,0" Width="60"
-                            Style="{StaticResource SecondaryAction}" Command="{Binding BrowseRootCommand}" />
-                    <Button Content="扫描" Margin="6,0,0,0" Width="80"
-                            Style="{StaticResource PrimaryAction}" Command="{Binding ScanCommand}" />
+                <StackPanel Grid.Column="1" Margin="24,0,0,0" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBox Width="420" Height="32" VerticalContentAlignment="Center"
+                                 Style="{StaticResource PlaceholderTextBox}"
+                                 Text="{Binding DataRootText, UpdateSourceTrigger=PropertyChanged}"
+                                 Tag="游戏 Game\DATA 目录"
+                                 KeyDown="DataRootBox_KeyDown"
+                                 ToolTip="英雄联盟安装目录下的 Game\DATA；填安装目录或 Game 目录也可以" />
+                        <Button Content="浏览" Margin="6,0,0,0" Width="60"
+                                Style="{StaticResource SecondaryAction}" Command="{Binding BrowseRootCommand}" />
+                        <Button Content="扫描" Margin="6,0,0,0" Width="80"
+                                Style="{StaticResource PrimaryAction}" Command="{Binding ScanCommand}" />
+                    </StackPanel>
+                    <TextBlock Text="{Binding GameRootHint}" FontSize="11" Margin="2,4,0,0"
+                               Foreground="{StaticResource MutedBrush}" TextTrimming="CharacterEllipsis"
+                               ToolTip="{Binding GameRootHint}" />
                 </StackPanel>
 
                 <TextBlock Grid.Column="2" Text="{Binding HashStatus}" FontSize="11" Margin="12,0"
