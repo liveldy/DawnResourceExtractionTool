@@ -31,6 +31,11 @@ public partial class App : Application
         var exportStream = GetArgument(e.Args, "--export-stream");
         var wadFilter = GetArgument(e.Args, "--wad-filter");
         var checkAll = HasFlag(e.Args, "--check-all");
+        var catalog = GetArgument(e.Args, "--catalog");
+        var catalogSelect = GetArgument(e.Args, "--catalog-select");
+        var catalogExport = GetArgument(e.Args, "--catalog-export");
+        var jsonJump = HasFlag(e.Args, "--json-jump");
+        var catalogSearch = GetArgument(e.Args, "--catalog-search");
 
         var window = new MainWindow();
         MainWindow = window;
@@ -53,6 +58,26 @@ public partial class App : Application
                 window.ViewModel.Log("自检：全选后 " + window.ViewModel.SelectionSummary);
             }
             if (tab is not null) window.ShowTab(tab);
+            if (catalog is not null || catalogSelect is not null || catalogExport is not null || jsonJump
+                || catalogSearch is not null)
+            {
+                var opened = await window.ShowCatalogAsync(catalogSelect ?? catalog);
+                window.ViewModel.Log($"自检：分类浏览 {(opened ? "已打开" : "没有分类节点")} → {window.ViewModel.CatalogStatus}");
+            }
+            if (catalogExport is not null)
+            {
+                window.ViewModel.OutputRootText = catalogExport;
+                await window.ViewModel.ExportSelectedCatalogAsync();
+            }
+            if (catalogSearch is not null)
+            {
+                window.ViewModel.CatalogSearchText = catalogSearch;
+                await Task.Delay(700);   // the search box debounces 300 ms
+                var hit = window.ViewModel.CatalogSearchRoots.FirstOrDefault();
+                window.ViewModel.Log($"自检：分类搜索「{catalogSearch}」→ {(hit is null ? "没有结果" : hit.CountText)}" +
+                                     $"（显示搜索 {window.ViewModel.CatalogShowingSearch} / 树可见 {window.ViewModel.CatalogTreeVisible}）");
+            }
+            if (jsonJump) await RunJsonJumpAsync(window);
             if (playAnim) await RunAnimationSmokeTestAsync(window);
             if (audioSmoke) await RunAudioSmokeTestAsync(window);
             if (transcribe) await RunTranscribeSmokeTestAsync(window);
@@ -81,6 +106,27 @@ public partial class App : Application
     {
         var path = Path.ChangeExtension(Path.GetFullPath(screenshotPath), ".log");
         File.WriteAllLines(path, window.ViewModel.Logs, new System.Text.UTF8Encoding(false));
+    }
+
+    /// <summary>自检入口：点一下预览里 JSON 的第一个 /lol-game-data/ 链接，核对能跳到资源。</summary>
+    private static async Task RunJsonJumpAsync(MainWindow window)
+    {
+        var json = window.ViewModel.PreviewJson;
+        if (string.IsNullOrEmpty(json))
+        {
+            window.ViewModel.Log("自检：预览里没有 JSON，跳过跳转");
+            return;
+        }
+
+        var match = System.Text.RegularExpressions.Regex.Match(json, @"/lol-game-data/[^""\\]+");
+        if (!match.Success)
+        {
+            window.ViewModel.Log("自检：这段 JSON 里没有 /lol-game-data/ 路径");
+            return;
+        }
+
+        var opened = await window.ViewModel.OpenClientAssetAsync(match.Value);
+        window.ViewModel.Log($"自检：JSON 链接 {match.Value} → {(opened ? "已打开" : "未找到")}；{window.ViewModel.StatusText}");
     }
 
     /// <summary>自检入口：走一遍界面上的导出流程，用于无人值守验收。</summary>

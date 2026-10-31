@@ -46,6 +46,41 @@ public sealed class NameTable
 
     public string? GetPath(ulong hash) => TryGetPath(hash, out var path) ? path : null;
 
+    /// <summary>Position of a hash in the sorted table, or -1.</summary>
+    public int IndexOf(ulong hash) => Array.BinarySearch(_hashes, hash);
+
+    public ulong HashAt(int index) => _hashes[index];
+
+    /// <summary>Path of one table position; the bulk APIs below walk the table in order.</summary>
+    public string PathAt(int index)
+    {
+        var start = _offsets[index];
+        return Encoding.UTF8.GetString(_blob, start, _offsets[index + 1] - start);
+    }
+
+    /// <summary>Byte offset of a path inside <see cref="Blob"/>.</summary>
+    public int PathByteOffsetAt(int index) => _offsets[index];
+
+    public int PathByteLengthAt(int index) => _offsets[index + 1] - _offsets[index];
+
+    /// <summary>
+    /// The UTF-8 paths in one block, in table order. Read-only and allocation free so a full text
+    /// search (the catalog) can scan it without decoding every path first.
+    /// </summary>
+    public ReadOnlySpan<byte> Blob => _blob;
+
+    /// <summary>Table position that owns a byte offset of <see cref="Blob"/>, or -1.</summary>
+    public int FindIndexByOffset(int offset)
+    {
+        if (offset < 0 || offset >= _blob.Length) return -1;
+        var index = Array.BinarySearch(_offsets, 0, _hashes.Length + 1, offset);
+        if (index >= 0) return index < _hashes.Length ? index : -1;
+
+        // Not an exact start: the path containing this offset is the one before the insertion point.
+        var insertion = ~index - 1;
+        return insertion >= 0 && insertion < _hashes.Length ? insertion : -1;
+    }
+
     /// <summary>Builds a table from "hash path" lines (CommunityDragon hashtable format).</summary>
     public static NameTable LoadTextFiles(IEnumerable<string> files, IProgress<string>? log = null)
     {

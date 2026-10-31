@@ -309,6 +309,12 @@ public sealed class ExtractionOptions
 
     /// <summary>True when the export has to decode something, i.e. needs the helper tools.</summary>
     public bool ConvertsMedia => ConvertTextures || AudioFormat != AudioExportFormat.Keep;
+
+    /// <summary>
+    /// Replaces the path written below the output folder. The catalog uses it to lay files out as
+    /// category / hero / skin; <paramref name="wadKey"/> is the wad name without its suffix.
+    /// </summary>
+    public Func<WadEntryInfo, string, string>? RelativePathResolver { get; init; }
 }
 
 public sealed record ExtractionProgress(
@@ -419,7 +425,9 @@ public static class ExtractionService
                     Parallel.ForEach(plan.Entries, parallelOptions, entry =>
                     {
                         var archive = threadLocal.Value!;
-                        var relative = ResolveRelativePath(plan.WadKey, entry, archive, options.FlatLayout);
+                        var relative = options.RelativePathResolver is { } layout
+                            ? layout(entry, plan.WadKey)
+                            : ResolveRelativePath(plan.WadKey, entry, archive, options.FlatLayout);
                         var destination = SafePath.Fit(options.OutputRoot, wadFolder, relative);
 
                         try

@@ -16,7 +16,7 @@ namespace LolDataExtractor.App.ViewModels;
 
 public sealed record CategoryOption(string Display, string? Value);
 
-public sealed class MainViewModel : ObservableObject, IDisposable
+public sealed partial class MainViewModel : ObservableObject, IDisposable
 {
     /// <summary>Safety net: the tree is not built for more entries than this (search narrows it down).</summary>
     public const int MaxTreeFiles = 20000;
@@ -35,6 +35,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private readonly HashSet<ulong> _checkedEntries = new();
     private CancellationTokenSource? _cancellation;
     private WadItem? _selectedWad;
+
+    /// <summary>The wad the preview shows; a catalog leaf can live in another wad than the tree.</summary>
+    private WadItem? _previewWad;
+
+    /// <summary>Entries of the previewed wad when it is not the one open in the tree.</summary>
+    private IReadOnlyList<WadEntryInfo>? _previewEntriesOverride;
     private TreeNodeVm? _selectedNode;
     private string _dataRootText = string.Empty;
     private string _outputRootText = string.Empty;
@@ -163,6 +169,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         SelectAllCategoriesCommand = new RelayCommand(() => SetCategories(_ => true));
         SelectNoCategoriesCommand = new RelayCommand(() => SetCategories(_ => false));
         SelectCategoryPresetCommand = new RelayCommand(parameter => SetCategories(value => value == parameter as string));
+        InitializeCatalog();
         RefreshAudioToolState();
         ResetPreview();
         RaiseCommandStates();
@@ -433,6 +440,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         {
             if (ReferenceEquals(_selectedNode, value)) return;
             _selectedNode = value;
+            _previewWad = _selectedWad;   // a tree leaf always belongs to the open wad
+            _previewEntriesOverride = null;
             OnPropertyChanged();
             ExportCurrentCommand.RaiseCanExecuteChanged();
             ExportFolderCommand.RaiseCanExecuteChanged();
@@ -1023,10 +1032,21 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     private async Task LoadPreviewAsync(TreeNodeVm? node)
     {
+        if (node?.Entry is not { } entry || _previewWad is not { } wad)
+        {
+            ++_previewToken;
+            ResetPreview();
+            return;
+        }
+
+        await PreviewEntryAsync(wad, entry);
+    }
+
+    /// <summary>Shows one entry of one wad; the tree and the catalog both end up here.</summary>
+    private async Task PreviewEntryAsync(WadItem wad, WadEntryInfo entry)
+    {
         var token = ++_previewToken;
         ResetPreview();
-
-        if (node?.Entry is not { } entry || _selectedWad is not { } wad) return;
 
         BeginPreview(entry);
         var result = await ReadPreviewAsync(wad, entry);
@@ -1084,7 +1104,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         var directory = DirectoryOf(entry.Path ?? string.Empty);
         var stem = Path.GetFileNameWithoutExtension(entry.FileName);
 
-        return _currentEntries.FirstOrDefault(candidate =>
+        return PreviewEntries.FirstOrDefault(candidate =>
             string.Equals(candidate.Extension, "wpk", StringComparison.OrdinalIgnoreCase)
             && string.Equals(Path.GetFileNameWithoutExtension(candidate.FileName), stem, StringComparison.OrdinalIgnoreCase)
             && string.Equals(DirectoryOf(candidate.Path ?? string.Empty), directory, StringComparison.OrdinalIgnoreCase));
@@ -1176,9 +1196,13 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
             case PreviewKind.Text:
             {
-                PreviewText = result.Text;
-                ShowText = result.Text is not null;
-                if (!ShowText)
+                // Client tables are JSON: they get the formatted, searchable, click-through view.
+                var isJson = string.Equals(_previewEntry?.Extension, "json", StringComparison.OrdinalIgnoreCase);
+                PreviewJson = isJson ? result.Text : null;
+                ShowJson = isJson && result.Text is not null;
+                PreviewText = isJson ? null : result.Text;
+                ShowText = !ShowJson && result.Text is not null;
+                if (!ShowText && !ShowJson)
                 {
                     PreviewMessage = result.Message ?? "内容为空";
                     ShowMessage = true;
@@ -1234,9 +1258,14 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         return bitmap;
     }
 
+    /// <summary>Entries of the wad the preview shows: the open wad, or the catalog one.</summary>
+    public IReadOnlyList<WadEntryInfo> PreviewEntries => _previewEntriesOverride ?? _currentEntries;
+
     private void ResetPreview()
     {
         ShowImage = ShowModel = ShowAudio = ShowText = ShowHex = ShowMessage = false;
+        ShowJson = false;
+        PreviewJson = null;
         PreviewImage = null;
         PreviewModel = null;
         PreviewText = null;
@@ -1288,14 +1317,14 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         AnimationChoices.Clear();
         TextureChoices.Clear();
 
-        if (_previewEntry is not { } entry || _currentEntries.Count == 0)
+        if (_previewEntry is not { } entry || PreviewEntries.Count == 0)
         {
             HasModelAssets = false;
             RaiseAssetCommandStates();
             return;
         }
 
-        var linked = AssetLinker.Find(entry, _currentEntries);
+        var linked = AssetLinker.Find(entry, PreviewEntries);
         FillChoices(SkeletonChoices, linked.Skeletons, "无骨骼（静态显示）");
         FillChoices(AnimationChoices, linked.Animations, "无动画（绑定姿势）");
         FillChoices(TextureChoices, linked.Textures, "无贴图（纯色）");
@@ -1348,7 +1377,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private async Task BuildModelSceneAsync(int token)
     {
         var model = _previewModelData;
-        var wad = _selectedWad;
+        var wad = _previewWad;
         if (model is null || wad is null) return;
 
         var skeletonEntry = _selectedSkeletonChoice?.Entry;
@@ -1588,7 +1617,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             _ => "选择贴图（.tex）",
         };
 
-        var picker = new EntryPickerWindow(_currentEntries, title, extension)
+        var picker = new EntryPickerWindow(PreviewEntries, title, extension)
         {
             Owner = Application.Current?.MainWindow,
         };
@@ -1831,7 +1860,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     /// <summary>Writes the entry currently shown in the preview to the export folder.</summary>
     private void ExportCurrent()
     {
-        if (_selectedNode?.Entry is not { } entry || _selectedWad is not { } wad) return;
+        if (_selectedNode?.Entry is not { } entry || _previewWad is not { } wad) return;
         if (string.IsNullOrWhiteSpace(OutputRootText))
         {
             StatusText = "请先设置导出目录";
@@ -1893,7 +1922,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     private async Task PlayAudioAsync()
     {
-        if (_previewEntry is not { } entry || _selectedWad is not { } wad) return;
+        if (_previewEntry is not { } entry || _previewWad is not { } wad) return;
 
         StopAudio();
         var playback = ++_audioPlaybackToken;
@@ -1948,13 +1977,13 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         if (bank is null)
         {
             // A bare wem / wav is a single stream of its own.
-            if (_previewEntry is { } entry && _selectedWad is { } wad)
+            if (_previewEntry is { } entry && _previewWad is { } wad)
                 AddAudioTrack(new WwiseSound(0, 0, 0, 0, 0), wad.FullPath, entry.Hash);
             SelectedAudioTrack = AudioTracks.FirstOrDefault();
             return;
         }
 
-        if (_previewEntry is not { } current || _selectedWad is not { } currentWad) return;
+        if (_previewEntry is not { } current || _previewWad is not { } currentWad) return;
         foreach (var sound in bank.Sounds) AddAudioTrack(sound, currentWad.FullPath, current.Hash);
         SelectedAudioTrack = AudioTracks.FirstOrDefault();
     }
@@ -1973,7 +2002,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     /// <summary>Transcribes the selected stream into its note.</summary>
     private async Task TranscribeSelectedAsync()
     {
-        if (SelectedAudioTrack is not { } track || _previewEntry is not { } entry || _selectedWad is not { } wad) return;
+        if (SelectedAudioTrack is not { } track || _previewEntry is not { } entry || _previewWad is not { } wad) return;
 
         var token = _cancellation = new CancellationTokenSource();
         IsTranscribing = true;
@@ -2005,7 +2034,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     /// <summary>Transcribes every stream of the open bank that has no note yet.</summary>
     private async Task TranscribeAllAsync()
     {
-        if (AudioTracks.Count == 0 || _previewEntry is not { } entry || _selectedWad is not { } wad) return;
+        if (AudioTracks.Count == 0 || _previewEntry is not { } entry || _previewWad is not { } wad) return;
 
         var tracks = AudioTracks.ToList();
         var token = _cancellation = new CancellationTokenSource();
@@ -2369,6 +2398,15 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     public void Log(string message)
     {
+        // A background progress callback must not write the bound list itself: queue it on the UI
+        // thread and keep the messages in the order they were produced.
+        var dispatcher = Application.Current?.Dispatcher;
+        if (dispatcher is not null && !dispatcher.CheckAccess())
+        {
+            dispatcher.BeginInvoke(DispatcherPriority.Normal, () => Log(message));
+            return;
+        }
+
         Logs.Add($"[{DateTime.Now:HH:mm:ss}] {message}");
         while (Logs.Count > 500) Logs.RemoveAt(0);
     }

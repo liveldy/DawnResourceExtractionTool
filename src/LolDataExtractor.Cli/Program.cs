@@ -39,6 +39,7 @@ internal static class Program
             "list" => List(settings, parsed),
             "extract" => Extract(settings, parsed),
             "media" => Extract(settings, parsed, mediaOnly: true),
+            "catalog" => Catalog(settings, parsed),
             "hashes" => Hashes(settings, parsed),
             _ => Unknown(command),
         };
@@ -75,6 +76,10 @@ internal static class Program
                      [--path 目录前缀] [--flat] [--overwrite] [--dry-run]
                                               只导出二次解析后的媒体：贴图转 PNG，音频转 MP3
                                               其余条目（模型、数据等）不导出
+              catalog [--root 路径] [--json 文件] [--bucket 名称] [--search 文字] [--limit N]
+                                              按英雄/皮肤把条目分类，输出各分类的条目数，
+                                              便于核对分类规则（--bucket 只看一类，
+                                              --search 试搜路径，--json 存明细）
               hashes fetch [--token T] [--dir 目录] [--build]
                                               下载 CommunityDragon 哈希表（约 217MB，9 个分片）
               hashes build [--dir 目录] [--out 文件] [--root 路径 --scope]
@@ -341,6 +346,116 @@ internal static class Program
         if (summary.ManifestPath is not null) Console.WriteLine($"清单: {summary.ManifestPath}");
         foreach (var error in summary.Errors) Console.Error.WriteLine("  失败: " + error);
         return summary.Failed == 0 ? 0 : 3;
+    }
+
+    /// <summary>
+    /// Builds the classified catalog and prints what landed in each bucket. This is the headless
+    /// check of the classification rules: the numbers here are what the tree shows.
+    /// </summary>
+    private static int Catalog(AppSettings settings, CommandLine parsed)
+    {
+        var dataRoot = ResolveRoot(settings, parsed, out var clientRoot);
+        if (dataRoot is null) return 1;
+
+        var names = LoadNames(settings);
+        var clientNames = LoadClientNames(settings);
+
+        var timer = Stopwatch.StartNew();
+        var summaries = WadCatalog.Scan(dataRoot).ToList();
+        if (clientRoot is not null) summaries.AddRange(WadCatalog.ScanClient(clientRoot));
+        Console.WriteLine($"扫描 {summaries.Count} 个 wad（{summaries.Sum(s => s.EntryCount):N0} 个条目），{timer.Elapsed.TotalSeconds:F1}s");
+
+        timer.Restart();
+        var tables = CatalogTables.LoadFromClient(summaries.Where(summary => summary.IsClient).ToList(), clientNames, new InlineProgress<string>(Console.WriteLine));
+        var catalog = AssetCatalog.Build(summaries, names, null, tables,
+            new InlineProgress<string>(message => Console.WriteLine("  " + message)));
+        timer.Stop();
+        Console.WriteLine($"分类索引：{catalog.Count:N0} 个条目，{catalog.Groups.Count:N0} 个分组，用时 {timer.Elapsed.TotalSeconds:F1}s");
+
+        var bucket = parsed.Get("bucket");
+        var limit = parsed.GetInt("limit") ?? 15;
+        var showAll = string.IsNullOrWhiteSpace(bucket);
+        foreach (var info in CatalogCategoryInfo.All)
+        {
+            if (!showAll && CatalogCategoryInfo.TryParse(bucket, out var wanted) && wanted != info.Category) continue;
+
+            var count = catalog.CountOf(info.Category);
+            var heroes = catalog.GroupsOf(info.Category).Select(group => group.Hero).Distinct().Count();
+            var skins = catalog.GroupsOf(info.Category).Select(group => group.Skin).Distinct().Count(label => label != 0);
+            Console.WriteLine($"  {info.Display,-8}{count,10:N0} 个文件 · {heroes,5:N0} 个节点 · {skins,5:N0} 套皮肤   {info.Description}");
+        }
+
+        // --search runs the same blob search the UI does, so a miss can be reproduced here.
+        if (parsed.Get("search") is { Length: > 0 } search)
+        {
+            var watch = Stopwatch.StartNew();
+            var hits = catalog.Search(search, limit);
+            Console.WriteLine();
+            Console.WriteLine($"== 搜索「{search}」：{hits.Total:N0} 个命中，用时 {watch.ElapsedMilliseconds} ms");
+            foreach (var entry in hits.Entries.Take(limit))
+                Console.WriteLine($"  {CatalogCategoryInfo.Of(entry.Category).Display}  {entry.Path}");
+        }
+
+        if (!showAll && CatalogCategoryInfo.TryParse(bucket, out var only))
+        {
+            Console.WriteLine();
+            Console.WriteLine($"== {CatalogCategoryInfo.Of(only).Display} 的节点（前 {limit} 个）");
+            var nodeSizes = new Dictionary<int, int>();
+            foreach (var group in catalog.GroupsOf(only))
+                nodeSizes[group.Hero] = nodeSizes.GetValueOrDefault(group.Hero) + group.Count;
+            foreach (var (hero, size) in nodeSizes.OrderByDescending(pair => pair.Value).Take(limit))
+                Console.WriteLine($"{size,8:N0}  {catalog.Heroes[hero].Label}");
+        }
+
+        Console.WriteLine();
+        Console.WriteLine("== 文件最多的 15 个分组");
+        foreach (var group in catalog.Groups.OrderByDescending(group => group.Count).Take(limit))
+        {
+            var hero = catalog.Heroes[group.Hero];
+            var skin = catalog.Skins[group.Skin];
+            var name = group.Skin == 0 ? hero.Label : $"{hero.Label} / {skin.Label}";
+            Console.WriteLine($"{group.Count,8:N0}  {CatalogCategoryInfo.Of(group.Bucket).Display} · {Truncate(name, 60)}");
+        }
+
+        var unclassified = catalog.EntriesOf(CatalogCategory.Unclassified);
+        if (unclassified.Count > 0)
+        {
+            Console.WriteLine();
+            Console.WriteLine($"== 未分类样例（共 {unclassified.Count:N0} 条）");
+            foreach (var entry in unclassified.Take(12)) Console.WriteLine("  " + entry.Path);
+        }
+
+        var guesses = catalog.Heroes.Where(hero => hero.Kind == CatalogHeroKind.Guessed).ToList();
+        var folders = catalog.Heroes.Where(hero => hero.Kind == CatalogHeroKind.Folder).ToList();
+        Console.WriteLine();
+        Console.WriteLine($"== 英雄节点 {catalog.Heroes.Count:N0} 个：确认 {catalog.Heroes.Count - guesses.Count - folders.Count:N0} · 推测 {guesses.Count:N0} · 未识别目录 {folders.Count:N0}");
+        foreach (var hero in guesses.Take(8)) Console.WriteLine("  推测 " + hero.Label);
+
+        var sizes = new int[catalog.Heroes.Count];
+        foreach (var group in catalog.Groups) sizes[group.Hero] += group.Count;
+        foreach (var hero in folders.OrderByDescending(hero => sizes[catalog.Heroes.ToList().IndexOf(hero)]).Take(8))
+            Console.WriteLine("  目录 " + hero.Label);
+
+        var jsonPath = parsed.Get("json");
+        if (jsonPath is not null)
+        {
+            var details = CatalogCategoryInfo.All.ToDictionary(
+                info => info.Display,
+                info => catalog.EntriesOf(info.Category).Take(200000).Select(entry => new
+                {
+                    path = entry.Path,
+                    hero = catalog.Heroes[entry.Hero].Label,
+                    heroKind = catalog.Heroes[entry.Hero].Kind.ToString(),
+                    skin = entry.Skin == 0 ? null : catalog.Skins[entry.Skin].Label,
+                    wad = Path.GetFileName(entry.WadPath),
+                    copies = entry.WadCount,
+                    size = entry.Size,
+                }).ToArray());
+            File.WriteAllText(jsonPath, System.Text.Json.JsonSerializer.Serialize(details, JsonOptions));
+            Console.WriteLine($"已写入 {jsonPath}");
+        }
+
+        return 0;
     }
 
     private static int Hashes(AppSettings settings, CommandLine parsed)

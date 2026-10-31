@@ -1,4 +1,4 @@
-# 英雄联盟数据提取工具 (LoL Data Extractor) 1.0.4
+# 英雄联盟数据提取工具 (LoL Data Extractor) 1.1.0
 
 读取 `英雄联盟\Game\DATA` 下的 wad v3 资源包，把 64 位路径哈希还原成真实资源路径，
 按树形目录浏览、就地预览、按需筛选和多线程解包。图形界面面向日常操作，命令行面向批处理与脚本。
@@ -19,9 +19,23 @@
 - **名称还原**：用 CommunityDragon 哈希表把哈希还原成真实路径（本机实测 99.9%）。
 - **树形浏览**：条目按「类别 → 目录 → 文件」分组，单链目录自动展开，可按路径/哈希搜索、按类别过滤；
   每行带勾选框，勾目录等于勾它下面全部条目，勾选结果换搜索也不会丢。
+- **按分类浏览**：中间栏顶部可切「按 wad 浏览 / 按分类浏览」。分类模式把所有游戏包与客户端包的条目一起过一遍规则，
+  归成「英雄资源 / 英雄图像 / 英雄音频 / 英雄配置 / 地图 / 界面与数据 / 物品与装备 / 共享资源 / 未分类」九个桶，
+  每个桶下面是「英雄 → 皮肤 → 目录 → 文件」；右键「导出这个节点」按 `类别\英雄\皮肤\原路径` 落盘。
+  谁是哪个英雄由客户端的英雄表决定，名字一律用英文：英雄节点就是 `alias`（也就是资源目录名），
+  皮肤名取自英文 `skins.json`（形如 `皮肤 NN <英文皮肤名>`），不显示中文译名。目录名只当线索：
+  `<alias>shadow`、`tft17_<alias>`、`jade_<alias>`
+  这类能对上但不确定的单独成节点并标「推测」，完全对不上的标「目录未识别」，未命名的哈希留在「未分类」。
+  规则不可能全对，所以留了一层人工保底：右键「归到分类」「归到英雄」「隐藏这个目录」「还原自动分类」，
+  选择框里填英文 `alias` 就能把选中的层整体归过去。这些改动写进
+  `%LOCALAPPDATA%\LolDataExtractor\catalog-overrides.json`（按路径前缀的规则 + 按哈希的条目例外），重启照样生效，
+  规则生效后索引会自动重建。分类模式上方是覆盖全部 wad 的搜索框（直接扫名称表，88 万条目里搜一次不到 1 秒）。
 - **预览**：贴图（`.tex` / `.dds` / `.tga`）直接出图，模型（`.scb` / `.skn`）可旋转缩放的 3D 视图
   （左键拖拽旋转、右键拖拽平移、滚轮缩放，右上角「复位视角」回到初始机位），
   音频包（`.bnk` 与语音包 `.wpk`）列出每条流并试听，文本（`.txt` / `.xml` / `.json` / `.lua` …）只读显示，其余给十六进制。
+- **JSON 阅读**：`.json` 条目在预览页带语法高亮与缩进格式化，可一键切回「原文」，`Ctrl+F` 搜索。
+  值里形如 `/lol-game-data/…` 的路径可以直接点：跳到客户端包里对应的资源（目录形态与 `default` / `zh_cn`
+  两种语言副本都会试），点到就是那张原画、图标或头像；跳不到时状态栏会说明是哪个路径没找到。
 - **模型动画**：打开模型时按目录就近自动匹配骨骼（`.skl`）、该皮肤的全部动画（`.anm`）与贴图（`.tex`），
   三者在预览页各给一个下拉列表，可随时换；「…」按钮还能跨 wad 手动挑条目。
   一张皮肤有多张贴图时，按子网格名字把每张图贴到对应部件上，控制条下方列出分配结果
@@ -53,6 +67,9 @@
 | 全量扫描耗时 | 约 1 秒 |
 | 贴图解码 | 160/160 张成功，最慢 21 ms |
 | 客户端插件包 | 51 个 wad，6.97 GB，63,582 个条目（英雄/装备文本、头像、原画） |
+| 分类索引 | 887,382 个条目 → 39,616 个分组 / 5,755 个英雄节点，约 2 秒 |
+| 分类结果 | 英雄资源 589,774 · 英雄图像 26,134 · 英雄音频 5,301 · 英雄配置 65,143 |
+| | 地图 71,020 · 界面与数据 83,389 · 物品与装备 6,281 · 共享资源 39,117 · 未分类 1,223 |
 
 ## 依赖与来源
 
@@ -93,10 +110,14 @@ dist\app\LolDataExtractor.exe
    中间在目录树里点开文件，右侧「预览」页查看内容。
    客户端包里原样浏览：文本 JSON 直接显示，头像与原画（`.png` / `.jpg`）直接出图。
    选中 `.skn` / `.scb` 模型后，贴图 / 骨骼 / 动画三个下拉已自动填好，点「播放」看动画；不对就用「…」手动挑。
-4. 右侧「导出」页设置导出范围、输出目录、类别、目录前缀、过滤条件与线程数，点「开始导出」；
+4. 想按英雄找资源就把中间栏顶部的「浏览」切成「按分类浏览」：第一次切换会花约 2 秒分类全部条目，
+   之后展开「英雄资源 / 英雄图像 / …」→ 英雄 → 皮肤就能直接看到文件（标「推测」的目录名是猜的，
+   右键可以归到正确的英雄或分类）；分类模式下上方搜索框搜的是全部 wad 的路径，
+   右键「导出这个节点」按 `类别\英雄\皮肤\原路径` 落盘。
+5. 右侧「导出」页设置导出范围、输出目录、类别、目录前缀、过滤条件与线程数，点「开始导出」；
    「预览」页右上角的「导出此文件」可直接导出当前条目（同样会转格式，音频包只导出音频列表里选中的那一条流），
    目录树右键还能「导出此目录」。日志在「日志」页单独一页，可一键清空。
-5. 打开音频包（`.wpk` / `_audio.bnk`）后，右侧音频区可「播放」「转换」（转成文字进备注）或「批量转换」；
+6. 打开音频包（`.wpk` / `_audio.bnk`）后，右侧音频区可「播放」「转换」（转成文字进备注）或「批量转换」；
    备注框随手可改，改完即存。
 
 命令行：
@@ -120,6 +141,10 @@ dotnet run --project src/LolDataExtractor.Cli -- extract --wad <wad> --out D:\Lo
 
 # 只要二次解析后的媒体：贴图 PNG + 语音 MP3，其余一概不导出
 dotnet run --project src/LolDataExtractor.Cli -- media --wad <wad>.zh_CN --out D:\LoLAssets
+
+# 按英雄/皮肤把全部条目分类，看每个桶的条目数（--bucket 只看一类，--search 试搜路径）
+dotnet run --project src/LolDataExtractor.Cli -- catalog --root <安装目录>
+dotnet run --project src/LolDataExtractor.Cli -- catalog --bucket 英雄音频 --limit 10
 
 # 客户端资产：--root 指到安装根目录，list / scan / extract / media 就一起带上 LeagueClient\plugins 下的包
 dotnet run --project src/LolDataExtractor.Cli -- list <客户端 wad> --root <安装目录> --filter=*v1/champions/*.json
@@ -148,6 +173,7 @@ dotnet run --project src/LolDataExtractor.Cli -- extract --root <安装目录> -
 | `tools\vgmstream\` | 音频解码工具（首次试听时下载，约 4.6 MB） |
 | `tools\whisper\ggml-base.bin` | 语音识别模型（141 MB，首次「转换」时从 hf-mirror 下载，也可手动放入） |
 | `audio-notes.json` | 每条音频流的备注与转写结果（按 wad + 条目哈希 + 流序号索引） |
+| `catalog-overrides.json` | 分类的人工修正：按路径前缀的规则（`rules`）+ 按条目哈希的例外（`entries`），删掉即恢复全自动 |
 | `preview-cache\` | 试听用的临时 bnk / wav，可随时删除 |
 | `settings.json` | 上次使用的游戏目录、输出目录（默认 `桌面\LoLAssets`） |
 
@@ -177,6 +203,15 @@ dotnet run --project src/LolDataExtractor.Cli -- extract --root <安装目录> -
   本机 3,454 个模型 / 15,290 个子网格上验证：按名字命中子部件颜色图的 3,927 个（上一版 3,853），
   其余回退主色图，只有 55 个（目录里仅有遮罩与加载图）不贴图——遮罩类贴图被当作彩色图使用的次数为 0；
   C# 生产代码与 JS 原型逐条比对 15,282 行完全一致。
+- **分类**：把每个 wad 条目按 `XXH64` 去重（同一条目在多个包里只留一份，优先语言后缀与路径一致的那个包），
+  路径先剥掉客户端插件前缀，再按前缀规则分桶（`assets/characters/` 看扩展名分图像/资源，
+  `assets/sounds/` 归音频，`data/characters/` 归配置，`maps` / `levels` 归地图，`items` 归物品，其余 `assets` / `data` 归界面）；
+  英雄是谁不看目录名，而是查客户端英雄表（`champion-summary.json` + `skins.json`，皮肤原画路径把
+  `皮肤 id` 与 `角色/皮肤目录` 对上），目录名只在表里查不到时用来猜（精确别名 → 去掉 `jade_` / `tft17_` /
+  `pet` 前缀 → 前缀/后缀匹配），猜中但不确定的单列节点。分桶后按 `分类 → 英雄 → 皮肤` 排序并列成
+  「起始行 + 行数」的分组表，行数据存成若干平行数组（哈希、名称索引、大小、类别、英雄、皮肤、wad），
+  88 万条目约 12 MB、建索引约 2 秒；路径按需从名称表解码，搜索直接扫名称表的 UTF-8 块。
+  手工规则（`catalog-overrides.json`）在自动规则之后应用，按前缀长度从长到短匹配，条目级例外最后覆盖。
 - **预览**：`.tex` 先由 LeagueToolkit 转成 DDS，再由 BCnEncoder 解码成像素；`.skn` / `.scb` 取其子网格
   生成 `MeshGeometry3D`（scb 没有法线，按面法线做平面着色）；`.bnk` 解析 `BKHD` / `DIDX` / `DATA`
   列出每条 wem；`.wpk` 是 `r3d2` 头 + 每条流的偏移/长度/UTF-16 名字 + 裸 wem，直接按索引切出单条流；
@@ -207,9 +242,10 @@ dotnet run --project src/LolDataExtractor.Cli -- extract --root <安装目录> -
 
 ```powershell
 dotnet build LolDataExtractor.sln
-dotnet test tests\LolDataExtractor.Tests      # 203 项：哈希/名称表/识别/过滤/安装目录/合成 wad 解包/
-                                             # 树构建/贴图解码/Wwise 与 WPK 解析/模型解析/骨骼动画/资源匹配/贴图分配/
-                                             # PNG 编码/媒体格式规划/备注存储/转写语言/版本信息/预览分派/编码守卫
+dotnet test tests\LolDataExtractor.Tests      # 238 项：哈希/名称表/识别/过滤/安装目录/合成 wad 解包/
+                                             # 树构建/分类规则与人工覆盖/分类搜索/贴图解码/Wwise 与 WPK 解析/
+                                             # 模型解析/骨骼动画/资源匹配/贴图分配/PNG 编码/媒体格式规划/
+                                             # 备注存储/转写语言/版本信息/预览分派/编码守卫
 tools\check.ps1                               # 构建 + 测试 + 编码体检（UTF-8 无 BOM + LF）
 tools\package.ps1                             # 打发布包：单文件 exe + runtimes\win-x64 原生库 + 带文件夹的 zip
 tools\make-icon.ps1                           # 由 logo.png 重新生成 Assets\logo.ico（多尺寸 BMP 帧）
@@ -232,6 +268,10 @@ src/LolDataExtractor.Core   解析、预览解码与导出核心（无 UI 依赖
   Preview/                  WwiseBank（bnk + wpk）、TextureDecoder、ModelDecoder、SkeletonData、
                             AnimationClip、Skinning、AssetLinker、TextureBinder、PreviewService、VgmstreamTool
   LolClient.cs              客户端插件包的定位（LeagueClient\plugins）与相对路径
+  CatalogTables.cs          客户端英雄表（champion-summary.json / skins.json）与目录名猜测
+  CatalogClassifier.cs      一个条目 → 桶 / 英雄 / 皮肤的自动规则
+  CatalogOverrides.cs       人工修正规则（catalog-overrides.json）
+  AssetCatalog.cs           分类索引：去重、分桶、分组、按需解码路径、全文搜索
   MediaExporter.cs          贴图/音频转 PNG、MP3、WAV（含 Mp3Encoder）
   PngEncoder.cs             自带 PNG 编码器（RGBA8，Sub 滤波 + zlib）
   SpeechRecognizer.cs       whisper 模型下载与转写（Transcriber）
@@ -240,7 +280,9 @@ src/LolDataExtractor.Core   解析、预览解码与导出核心（无 UI 依赖
 src/LolDataExtractor.Cli    loldata 命令行
 src/LolDataExtractor.Shared 两个可执行文件共用的启动代码（原生库搜索路径注册）
 src/LolDataExtractor.App    WPF + HandyControl 界面（Controls/ModelPreviewView 为 3D 预览，
-                            Services/ModelScene 负责逐帧蒙皮，Controls/EntryPickerWindow 为手动选资源）
+                            Services/ModelScene 负责逐帧蒙皮，Controls/EntryPickerWindow 为手动选资源，
+                            Controls/JsonViewer 为带链接与搜索的 JSON 视图，
+                            ViewModels/MainViewModel.Catalog.cs 与 CatalogNodes.cs 为分类树）
 tests/LolDataExtractor.Tests 单元与集成测试（合成 wad / 合成 bnk / 合成 DDS / 真实游戏 wad 骨骼动画）
 tools/check.ps1             一键体检
 tools/make-icon.ps1         logo.png → logo.ico

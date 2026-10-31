@@ -53,6 +53,77 @@ public partial class MainWindow : Window
         if (e.NewValue is TreeNodeVm node) ViewModel.SelectedNode = node;
     }
 
+    /// <summary>The classified tree forwards its selection the same way; it may live in another wad.</summary>
+    private void CatalogTree_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
+    {
+        if (e.NewValue is CatalogNodeVm node) ViewModel.SelectedCatalogNode = node;
+    }
+
+    /// <summary>Right clicking a node selects it, so the context menu acts on the node under the cursor.</summary>
+    private void CatalogTree_PreviewMouseRightButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        var item = FindAncestor<TreeViewItem>(e.OriginalSource as DependencyObject);
+        if (item is not null) item.IsSelected = true;
+    }
+
+    /// <summary>Self test helper: switches the middle pane to the classified tree and expands it.</summary>
+    public async Task<bool> ShowCatalogAsync(string? select)
+    {
+        // Set the mode that owns the picker, not the other one, or the box keeps showing "按 wad 浏览".
+        ViewModel.BrowseMode = MainViewModel.BrowseModes[1];
+        await (ViewModel.PendingCatalogBuild ?? Task.CompletedTask);
+        if (ViewModel.CatalogRoots.Count == 0) return false;
+
+        foreach (var root in ViewModel.CatalogRoots)
+        {
+            root.IsExpanded = true;
+            await Task.WhenAll(root.Children.Select(child => child.EnsureLoadedAsync()));
+
+            if (string.IsNullOrWhiteSpace(select)) continue;
+            var hero = root.Children.FirstOrDefault(child =>
+                child.Name.Contains(select, StringComparison.OrdinalIgnoreCase));
+            if (hero is null) continue;
+
+            hero.IsExpanded = true;
+            await Task.WhenAll(hero.Children.Select(child => child.EnsureLoadedAsync()));
+
+            // The first skin of a group is often made of sub folders only, so walk down to a real file.
+            foreach (var skin in hero.Children)
+            {
+                if (await FirstFileAsync(skin, 4) is not { } file) continue;
+                skin.IsExpanded = true;
+                file.IsSelected = true;
+                ViewModel.SelectedCatalogNode = file;
+                break;
+            }
+
+            return true;
+        }
+
+        return true;
+    }
+
+    /// <summary>First file row below a node; folders are walked a few levels deep (self test helper).</summary>
+    private static async Task<CatalogNodeVm?> FirstFileAsync(CatalogNodeVm node, int depth)
+    {
+        if (node.Entry is not null) return node;
+        await node.EnsureLoadedAsync();
+        foreach (var child in node.Children)
+        {
+            if (child.Entry is not null) return child;
+            if (depth <= 0 || !child.IsFolder) continue;
+            if (await FirstFileAsync(child, depth - 1) is { } found) return found;
+        }
+
+        return null;
+    }
+
+    /// <summary>Clicking a /lol-game-data/ value inside the JSON view opens the asset it names.</summary>
+    private async void JsonViewer_LinkActivated(object? sender, string reference)
+    {
+        await ViewModel.OpenClientAssetAsync(reference);
+    }
+
     /// <summary>Drag limits of the three columns, in device independent pixels.</summary>
     private const double WadColumnMin = 200;
     private const double TreeColumnMin = 320;

@@ -158,11 +158,27 @@
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
-                    <Grid Grid.Row="0">
+                    <!-- 浏览方式：单个 wad，还是按英雄/皮肤分类的全部资源 -->
+                    <Grid Grid.Row="0" Margin="0,0,0,6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="浏览" FontSize="11" VerticalAlignment="Center"
+                                   Foreground="{StaticResource MutedBrush}" Margin="0,0,8,0" />
+                        <ComboBox Grid.Column="1" Height="30"
+                                  ItemsSource="{x:Static vm:MainViewModel.BrowseModes}"
+                                  SelectedItem="{Binding BrowseMode, Mode=TwoWay}"
+                                  ToolTip="按 wad：一次看一个 wad 的目录；按分类：全部 wad 按 英雄 → 皮肤 归好类" />
+                    </Grid>
+
+                    <Grid Grid.Row="1" Visibility="{Binding WadMode, Converter={StaticResource BoolToVis}}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="170" />
@@ -177,7 +193,40 @@
                                   SelectedItem="{Binding SelectedCategory}" />
                     </Grid>
 
-                    <TreeView Grid.Row="1" Margin="0,8,0,0" BorderThickness="0" Background="Transparent"
+                    <Grid Grid.Row="1" Visibility="{Binding CatalogMode, Converter={StaticResource BoolToVis}}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox Grid.Column="0" Height="30" VerticalContentAlignment="Center"
+                                 Style="{StaticResource PlaceholderTextBox}"
+                                 Text="{Binding CatalogSearchText, UpdateSourceTrigger=PropertyChanged}"
+                                 Tag="搜索全部 wad 的路径，例如 ahri 或 .bnk" />
+                        <Button Grid.Column="1" Content="重建" Width="54" Height="30" Margin="8,0,0,0"
+                                Style="{StaticResource SecondaryAction}"
+                                Command="{Binding RefreshCatalogCommand}"
+                                ToolTip="重新扫描并分类（改了手写规则后会自动重建）" />
+                    </Grid>
+
+                    <!-- 人工保底：把选中的节点归属到某个英雄 -->
+                    <Grid Grid.Row="2" Margin="0,6,0,0"
+                          Visibility="{Binding CatalogMode, Converter={StaticResource BoolToVis}}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox Grid.Column="0" Height="28" VerticalContentAlignment="Center"
+                                 Style="{StaticResource PlaceholderTextBox}"
+                                 Text="{Binding CatalogAssignName, UpdateSourceTrigger=PropertyChanged}"
+                                 Tag="归属到英雄：填英文别名" />
+                        <Button Grid.Column="1" Content="应用" Width="54" Height="28" Margin="8,0,0,0"
+                                Style="{StaticResource SecondaryAction}"
+                                Command="{Binding CatalogAssignChampionCommand}"
+                                ToolTip="把选中节点下的全部文件归到这个英雄（写入 catalog-overrides.json）" />
+                    </Grid>
+
+                    <TreeView Grid.Row="3" Margin="0,8,0,0" BorderThickness="0" Background="Transparent"
+                              Visibility="{Binding WadMode, Converter={StaticResource BoolToVis}}"
                               ItemsSource="{Binding TreeRoots}"
                               SelectedItemChanged="TreeView_SelectedItemChanged"
                               PreviewMouseRightButtonDown="TreeView_PreviewMouseRightButtonDown"
@@ -225,7 +274,109 @@
                         </TreeView.ItemTemplate>
                     </TreeView>
 
-                    <TextBlock Grid.Row="2" Text="{Binding TreeSummary}" Margin="0,6,0,0" FontSize="11"
+                    <!-- 分类树：类别 → 英雄 → 皮肤 → 目录 → 文件 -->
+                    <Grid Grid.Row="3" Visibility="{Binding CatalogMode, Converter={StaticResource BoolToVis}}">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <TreeView Grid.Row="0" Margin="0,8,0,0" BorderThickness="0" Background="Transparent"
+                                  Visibility="{Binding CatalogTreeVisible, Converter={StaticResource BoolToVis}}"
+                                  ItemsSource="{Binding CatalogRoots}"
+                                  SelectedItemChanged="CatalogTree_SelectedItemChanged"
+                                  PreviewMouseRightButtonDown="CatalogTree_PreviewMouseRightButtonDown"
+                                  VirtualizingStackPanel.IsVirtualizing="True"
+                                  VirtualizingStackPanel.VirtualizationMode="Recycling"
+                                  ScrollViewer.HorizontalScrollBarVisibility="Auto">
+                            <TreeView.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="导出这个节点（按分类落盘）" Command="{Binding ExportCatalogCommand}" />
+                                    <Separator />
+                                    <MenuItem Header="归到分类" ItemsSource="{x:Static core:CatalogCategoryInfo.All}">
+                                        <MenuItem.ItemContainerStyle>
+                                            <Style TargetType="MenuItem">
+                                                <Setter Property="Header" Value="{Binding Display}" />
+                                                <Setter Property="CommandParameter" Value="{Binding Category}" />
+                                                <Setter Property="Command"
+                                                        Value="{Binding DataContext.CatalogCategoryCommand,
+                                                                        RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                                            </Style>
+                                        </MenuItem.ItemContainerStyle>
+                                    </MenuItem>
+                                    <MenuItem Header="隐藏这个目录" Command="{Binding CatalogHideCommand}" />
+                                    <MenuItem Header="还原自动分类" Command="{Binding CatalogResetCommand}" />
+                                    <Separator />
+                                    <MenuItem Header="重建分类索引" Command="{Binding RefreshCatalogCommand}" />
+                                </ContextMenu>
+                            </TreeView.ContextMenu>
+                            <TreeView.ItemContainerStyle>
+                                <Style TargetType="TreeViewItem">
+                                    <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+                                    <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}" />
+                                </Style>
+                            </TreeView.ItemContainerStyle>
+                            <TreeView.ItemTemplate>
+                                <HierarchicalDataTemplate ItemsSource="{Binding Children}">
+                                    <StackPanel Orientation="Horizontal" Margin="0,1"
+                                                ToolTip="{Binding ToolTip}">
+                                        <TextBlock Text="{Binding Name}" FontSize="12"
+                                                   TextTrimming="CharacterEllipsis" VerticalAlignment="Center">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="FontWeight" Value="Normal" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsFolder}" Value="True">
+                                                            <Setter Property="FontWeight" Value="SemiBold" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                        <Border Background="#FEF0C7" CornerRadius="2" Padding="4,0" Margin="6,0,0,0"
+                                                VerticalAlignment="Center"
+                                                Visibility="{Binding HasHint, Converter={StaticResource BoolToVis}}">
+                                            <TextBlock Text="{Binding Hint}" FontSize="9" Foreground="#B54708" />
+                                        </Border>
+                                        <TextBlock Text="{Binding CountText}" FontSize="10" Margin="8,0,0,0"
+                                                   Foreground="#98A2B3" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </HierarchicalDataTemplate>
+                            </TreeView.ItemTemplate>
+                        </TreeView>
+
+                        <!-- 搜索结果覆盖整棵树 -->
+                        <TreeView Grid.Row="0" Margin="0,8,0,0" BorderThickness="0" Background="Transparent"
+                                  Visibility="{Binding CatalogShowingSearch, Converter={StaticResource BoolToVis}}"
+                                  ItemsSource="{Binding CatalogSearchRoots}"
+                                  SelectedItemChanged="CatalogTree_SelectedItemChanged"
+                                  VirtualizingStackPanel.IsVirtualizing="True"
+                                  VirtualizingStackPanel.VirtualizationMode="Recycling"
+                                  ScrollViewer.HorizontalScrollBarVisibility="Auto">
+                            <TreeView.ItemContainerStyle>
+                                <Style TargetType="TreeViewItem">
+                                    <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+                                    <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}" />
+                                </Style>
+                            </TreeView.ItemContainerStyle>
+                            <TreeView.ItemTemplate>
+                                <HierarchicalDataTemplate ItemsSource="{Binding Children}">
+                                    <StackPanel Orientation="Horizontal" Margin="0,1" ToolTip="{Binding ToolTip}">
+                                        <TextBlock Text="{Binding Name}" FontSize="12" VerticalAlignment="Center"
+                                                   TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="{Binding CountText}" FontSize="10" Margin="8,0,0,0"
+                                                   Foreground="#98A2B3" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </HierarchicalDataTemplate>
+                            </TreeView.ItemTemplate>
+                        </TreeView>
+
+                        <TextBlock Grid.Row="1" Text="{Binding CatalogStatus}" Margin="0,6,0,0" FontSize="11"
+                                   TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}" />
+                    </Grid>
+
+                    <TextBlock Grid.Row="4" Text="{Binding TreeSummary}" Margin="0,6,0,0" FontSize="11"
+                               Visibility="{Binding WadMode, Converter={StaticResource BoolToVis}}"
                                Foreground="{StaticResource MutedBrush}" />
                 </Grid>
             </Border>
@@ -459,6 +610,11 @@
                                          FontFamily="Consolas" FontSize="11" TextWrapping="Wrap"
                                          VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
                                          BorderBrush="#E4E7EC" Background="#FBFCFD" />
+
+                                <!-- JSON：格式化、可搜索、点路径跳转 -->
+                                <controls:JsonViewer Text="{Binding PreviewJson}"
+                                                     Visibility="{Binding ShowJson, Converter={StaticResource BoolToVis}}"
+                                                     LinkActivated="JsonViewer_LinkActivated" />
 
                                 <!-- 十六进制 -->
                                 <TextBox Text="{Binding PreviewHex, Mode=OneWay}" IsReadOnly="True"
