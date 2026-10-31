@@ -36,7 +36,7 @@
   关掉程序再打开还在，列表里显示备注（过长省略）。选中一条点「转换」就把这句话转成文字写进备注，
   点「批量转换」把整包里还没有备注的流一条条转完（约 0.8 秒/条，可随时停止）。
   转写在本机跑（whisper base，模型 141 MB，首次使用时从 hf-mirror 下载），音频不出本机；
-  语言按 wad 名判断（`Ahri.zh_CN` → 中文，`Ahri.wad` → 自动识别）。
+  语言按 wad 名判断（带 `zh_CN` / `en_US` 等地区后缀的按后缀走，没有后缀的自动识别）。
 
 ## 实测结果（本机 16.21 客户端）
 
@@ -64,7 +64,7 @@
 - 界面：[HandyControl](https://github.com/HandyOrg/HandyControl) 3.5.1。
 - 路径名：[CommunityDragon/Data](https://github.com/CommunityDragon/Data) 的 `hashes/lol/hashes.game.txt.0..8`
   （约 222 MB，9 个分片），通过 GitHub contents API 下载，避开国内常被阻断的 raw.githubusercontent.com。
-- **语音转写实测**：阿狸的中文 wad 有 1,378 条语音流，名字全是数字 id（`10038138.wem`），只能靠转写区分。
+- **语音转写实测**：一个中文语音 wad 有 1,378 条语音流，名字全是数字 id（`10038138.wem`），只能靠转写区分。
   whisper base 在本机约 0.8 秒/条（3 秒的中文台词），批量转一个 52 条的语音包约 40 秒；
   加一句简体中文提示词后输出是简体带标点（`脆弱的根基当然经不起风雨。`、`我们去某点真正的垃圾吧。`），
   参数完全相同的句子会串（`語言;`），但备注可以随手改。
@@ -80,7 +80,7 @@ dotnet run --project src/LolDataExtractor.App
 dist\app\LolDataExtractor.exe
 ```
 
-1. 顶部填写或浏览到 `...\英雄联盟（含经典模式）\Game\DATA`，点「扫描」。填安装目录或 `Game` 目录也行，
+1. 顶部填写或浏览到游戏安装目录下的 `Game\DATA`，点「扫描」。填安装目录或 `Game` 目录也行，
    框里会原样保留你填的路径，下面一行小字写着这次实际扫描的 `Game\DATA`。
 2. 首次使用点「下载哈希表」（约 222 MB，只下一次；已存在的分片自动跳过）。
 3. 左侧勾选 wad（「全选」只勾当前显示的项，搜索后就是搜索结果；全选后按钮变为「全不选」），
@@ -104,15 +104,15 @@ dotnet run --project src/LolDataExtractor.Cli -- hashes fetch --build
 # 扫描全部 wad（可导出 JSON）
 dotnet run --project src/LolDataExtractor.Cli -- scan --json out\scan.json
 
-# 列出某个英雄 wad 的模型文件
-dotnet run --project src/LolDataExtractor.Cli -- list Ahri --ext skn,skl --limit 20
+# 列出某个 wad 里的模型文件（<wad> 换成 wad 名或通配符，例如 Champions 下的某个名字）
+dotnet run --project src/LolDataExtractor.Cli -- list <wad> --ext skn,skl --limit 20
 
-# 导出阿狸的基础皮肤模型/贴图/语音（贴图转 PNG、音频转 MP3）
-dotnet run --project src/LolDataExtractor.Cli -- extract --wad Ahri --out D:\LoLAssets `
+# 导出某个英雄的基础皮肤模型/贴图/语音（贴图转 PNG、音频转 MP3）
+dotnet run --project src/LolDataExtractor.Cli -- extract --wad <wad> --out D:\LoLAssets `
     --filter "*skins/base/*" --category texture,model,audio --threads 8
 
 # 只要二次解析后的媒体：贴图 PNG + 语音 MP3，其余一概不导出
-dotnet run --project src/LolDataExtractor.Cli -- media --wad Ahri.zh_CN --out D:\LoLAssets
+dotnet run --project src/LolDataExtractor.Cli -- media --wad <wad>.zh_CN --out D:\LoLAssets
 ```
 
 常用参数：`--root` 游戏 DATA 目录、`--wad` wad 通配符、`--filter` 路径通配符、`--path` 目录前缀、
@@ -149,10 +149,10 @@ dotnet run --project src/LolDataExtractor.Cli -- media --wad Ahri.zh_CN --out D:
   所以按贴图名的命名约定判断：先剥掉结尾的地图标记（`_tx_cm` / `_cm` / `_tx` / `_diffuse` 是颜色图），
   名字里带 `mask` / `deform` / `rmsa` / `ramp` / `loadscreen` / `glow` / `matcap` 等的是数据图，永不贴到网格；
   不含任何额外词的贴图就是模型自身的主色图。剩下的颜色图按「去掉皮肤名后多出来的词」与子网格名逐词比对
-  （驼峰、字母数字、复数都会拆开，例如 `Tailset1`→`tail set 1`、`Mtails`→`tails`），
+  （驼峰、字母数字、复数都会拆开，例如 `Tailset1` → `tail set 1`），
   多出来的词必须被子网格名全部解释，编号也要一致（`Lv3` 不会拿 `Lv4` 的图）；
   `body` / `main` / `default` 说的是「模型本体」而不是哪个部件，所以它们不会挡路
-  （`gwen_base_main_doll_tx_cm` 就是玩偶的贴图）；少于三个字母的词只做前缀匹配
+  （`hero_base_main_doll_tx_cm` 就是玩偶的贴图）；少于三个字母的词只做前缀匹配
   （`e` 认成 `Eyes`，而技能图 `..._r_tx` 不会因为 "hair" 以 r 结尾就变成头发）。
   平分时取「额外词更少」的那张，即更朴素、更通用的图。
   全不匹配时回退到主色图（无主色图则取 body/整体那张）；整个目录只有遮罩与加载图时不贴图，避免把遮罩当彩色图。
@@ -222,7 +222,7 @@ src/LolDataExtractor.Cli    loldata 命令行
 src/LolDataExtractor.Shared 两个可执行文件共用的启动代码（原生库搜索路径注册）
 src/LolDataExtractor.App    WPF + HandyControl 界面（Controls/ModelPreviewView 为 3D 预览，
                             Services/ModelScene 负责逐帧蒙皮，Controls/EntryPickerWindow 为手动选资源）
-tests/LolDataExtractor.Tests 单元与集成测试（合成 wad / 合成 bnk / 合成 DDS / 真实 Ahri wad 骨骼动画）
+tests/LolDataExtractor.Tests 单元与集成测试（合成 wad / 合成 bnk / 合成 DDS / 真实游戏 wad 骨骼动画）
 tools/check.ps1             一键体检
 tools/make-icon.ps1         logo.png → logo.ico
 ```
