@@ -14,7 +14,7 @@
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <TextBlock Grid.Column="0" x:Name="HintText" FontSize="10" VerticalAlignment="Center"
-                       Foreground="#98A2B3" TextTrimming="CharacterEllipsis"
+                       Foreground="{DynamicResource PlaceholderBrush}" TextTrimming="CharacterEllipsis"
                        Text="Ctrl+F 搜索 · 点 /lol-game-data/ 路径跳到该资源" />
             <Button Grid.Column="1" x:Name="ModeButton" Content="原文" Width="54" Height="22"
                     FontSize="10" Padding="0" VerticalContentAlignment="Center"
@@ -26,8 +26,8 @@
                                FontFamily="Consolas" FontSize="11"
                                HorizontalScrollBarVisibility="Auto"
                                VerticalScrollBarVisibility="Auto"
-                               BorderBrush="#E4E7EC" BorderThickness="1"
-                               Background="#FBFCFD"
+                               BorderBrush="{DynamicResource PanelBorder}" BorderThickness="1"
+                               Background="{DynamicResource FieldBackground}"
                                IsReadOnly="True"
                                ShowLineNumbers="True" />
     </Grid>

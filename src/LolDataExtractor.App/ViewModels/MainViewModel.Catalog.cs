@@ -7,7 +7,7 @@ using LolDataExtractor.Core;
 namespace LolDataExtractor.App.ViewModels;
 
 /// <summary>
-/// The classified browser: category → hero → skin → folder → file, built from every wad at once.
+/// The classified browser: section → group → entity → folder → file, built from every wad at once.
 /// Also the home of the manual safety net — a right click turns the selected node into a rule that
 /// survives restarts.
 /// </summary>
@@ -76,7 +76,7 @@ public sealed partial class MainViewModel
         private set => SetProperty(ref _catalogStatus, value);
     }
 
-    /// <summary>Name typed into the "归属到英雄" box; an alias, a Chinese name or a free label.</summary>
+    /// <summary>Name typed into the "归属到组" box; a champion alias, a series or a free label.</summary>
     public string CatalogAssignName
     {
         get => _catalogAssignName;
@@ -130,10 +130,10 @@ public sealed partial class MainViewModel
 
     public RelayCommand ExportCatalogCommand { get; private set; } = null!;
 
-    /// <summary>Parameter is a <see cref="CatalogCategory"/> name; applied to the selected node.</summary>
-    public RelayCommand CatalogCategoryCommand { get; private set; } = null!;
+    /// <summary>Parameter is a <see cref="CatalogSection"/> name; applied to the selected node.</summary>
+    public RelayCommand CatalogSectionCommand { get; private set; } = null!;
 
-    public RelayCommand CatalogAssignChampionCommand { get; private set; } = null!;
+    public RelayCommand CatalogAssignGroupCommand { get; private set; } = null!;
 
     public RelayCommand CatalogHideCommand { get; private set; } = null!;
 
@@ -145,14 +145,14 @@ public sealed partial class MainViewModel
     private void InitializeCatalog()
     {
         ExportCatalogCommand = new RelayCommand(async () => await ExportCatalogAsync(), () => _selectedCatalogNode is not null);
-        CatalogCategoryCommand = new RelayCommand(parameter => ApplyCatalogCategory(parameter switch
+        CatalogSectionCommand = new RelayCommand(parameter => ApplyCatalogSection(parameter switch
         {
-            CatalogCategory category => category.ToString(),
-            CatalogCategoryInfo info => info.Category.ToString(),
+            CatalogSection section => section.ToString(),
+            CatalogSectionInfo info => info.Section.ToString(),
             string text => text,
             _ => string.Empty,
         }));
-        CatalogAssignChampionCommand = new RelayCommand(() => AssignCatalogChampion(), () => _selectedCatalogNode is { Entry: null });
+        CatalogAssignGroupCommand = new RelayCommand(() => AssignCatalogGroup(), () => _selectedCatalogNode is { Entry: null });
         CatalogHideCommand = new RelayCommand(() => HideCatalogNode(), () => _selectedCatalogNode is { Entry: null });
         CatalogResetCommand = new RelayCommand(ResetCatalogNode(), () => _catalog is not null);
         RefreshCatalogCommand = new RelayCommand(async () => await BuildCatalogAsync(force: true), () => !_catalogBusy);
@@ -184,11 +184,11 @@ public sealed partial class MainViewModel
 
         try
         {
-            CatalogStatus = "分类索引：读取英雄表…";
+            CatalogStatus = "分类索引：读取客户端数据表…";
             var tables = await Task.Run(() => CatalogTables.LoadFromClient(
                 summaries.Where(summary => summary.IsClient).ToList(), clientNames, progress));
 
-            CatalogStatus = "分类索引：分类 98 万个条目…";
+            CatalogStatus = "分类索引：按数据表归堆…";
             var catalog = await Task.Run(() => AssetCatalog.Build(
                 summaries, names, overrides, tables, progress));
             _catalog = catalog;
@@ -208,9 +208,8 @@ public sealed partial class MainViewModel
         BuildCatalogRoots();
         ApplyCatalogSearch();
 
-        var total = _catalog.Count;
-        var buckets = _catalog.Groups.Count;
-        CatalogStatus = $"分类索引：{total:N0} 个条目 / {buckets:N0} 个分组 · {_catalog.Heroes.Count:N0} 个英雄节点";
+        CatalogStatus = $"分类索引：{_catalog.Count:N0} 个条目 · {_catalog.Groups.Count(group => group.Count > 0):N0} 个组 · " +
+                        $"{_catalog.Entities.Count(entity => entity.Count > 0):N0} 个条目节点";
         Log(CatalogStatus);
     }
 
@@ -219,70 +218,60 @@ public sealed partial class MainViewModel
         CatalogRoots.Clear();
         if (_catalog is not { } catalog) return;
 
-        foreach (var info in CatalogCategoryInfo.All)
+        foreach (var info in CatalogSectionInfo.All)
         {
-            var groups = catalog.GroupsOf(info.Category);
+            var groups = catalog.GroupsOf(info.Section);
             var files = groups.Sum(group => group.Count);
             if (files == 0) continue;
 
-            var heroes = groups.Select(group => group.Hero).Distinct().Count();
-            var category = info.Category;
-            CatalogRoots.Add(CatalogNodeVm.ForCategory(category, files, heroes,
-                node => FillCategoryAsync(node, category), info.Description));
+            var section = info.Section;
+            CatalogRoots.Add(CatalogNodeVm.ForSection(info, files, groups.Count,
+                node => FillSectionAsync(node, section), info.Description));
         }
     }
 
-    private Task FillCategoryAsync(CatalogNodeVm node, CatalogCategory category)
+    private Task FillSectionAsync(CatalogNodeVm node, CatalogSection section)
     {
         if (_catalog is not { } catalog) return Task.CompletedTask;
 
-        var sizes = new Dictionary<int, int>();
-        foreach (var group in catalog.GroupsOf(category))
-            sizes[group.Hero] = sizes.GetValueOrDefault(group.Hero) + group.Count;
-
-        var rows = sizes
-            .Select(pair => (Hero: catalog.Heroes[pair.Key], Size: pair.Value, Index: pair.Key))
-            .OrderBy(row => row.Hero.Kind)
-            .ThenBy(row => row.Hero.Kind == CatalogHeroKind.Folder ? 1 : 0)
-            .ThenBy(row => row.Hero.Label, StringComparer.OrdinalIgnoreCase)
-            .ToList();
+        var rows = new List<(int Index, CatalogGroup Group)>();
+        for (var i = 0; i < catalog.Groups.Count; i++)
+        {
+            var group = catalog.Groups[i];
+            if (group.Section == section && group.Count > 0) rows.Add((i, group));
+        }
 
         node.Children.Clear();
-        foreach (var (hero, size, index) in rows)
+        foreach (var (index, group) in rows
+                     .OrderBy(row => row.Group.Rank)
+                     .ThenBy(row => row.Group.Label, StringComparer.OrdinalIgnoreCase))
         {
-            node.Children.Add(CatalogNodeVm.ForHero(
-                hero.Label,
-                $"{size:N0} 个文件",
-                category,
-                index,
-                hero.Kind == CatalogHeroKind.Guessed,
-                hero.Kind == CatalogHeroKind.Folder,
-                child => FillHeroAsync(child, category, index)));
+            node.Children.Add(CatalogNodeVm.ForGroup(section, index, group.Label, $"{group.Count:N0} 个文件",
+                null, group.Detail, child => FillGroupAsync(child, index)));
         }
 
         return Task.CompletedTask;
     }
 
-    private Task FillHeroAsync(CatalogNodeVm node, CatalogCategory category, int hero)
+    private Task FillGroupAsync(CatalogNodeVm node, int group)
     {
         if (_catalog is not { } catalog) return Task.CompletedTask;
 
-        // Root files first, then the skins the tables know (by id), then the folders nothing matches
-        // (skin05 without a skins.json entry still deserves a row, just further down).
-        var groups = catalog.Groups
-            .Where(group => group.Category == (int)category && group.Hero == hero)
-            .OrderBy(group => group.Skin == 0 ? 0 : catalog.Skins[group.Skin].IsKnown ? 1 : 2)
-            .ThenBy(group => catalog.Skins[group.Skin].SkinId)
-            .ThenBy(group => catalog.Skins[group.Skin].Label, StringComparer.OrdinalIgnoreCase)
-            .ToList();
+        var rows = new List<(int Index, CatalogEntity Entity)>();
+        for (var i = 0; i < catalog.Entities.Count; i++)
+        {
+            var entity = catalog.Entities[i];
+            if (entity.Group == group && entity.Count > 0) rows.Add((i, entity));
+        }
 
         node.Children.Clear();
-        foreach (var group in groups)
+        foreach (var (index, entity) in rows
+                     .OrderBy(row => row.Entity.Rank)
+                     .ThenBy(row => row.Entity.Label, StringComparer.OrdinalIgnoreCase))
         {
-            var label = catalog.Skins[group.Skin];
-            var name = group.Skin == 0 ? "（根目录）" : label.Label;
-            node.Children.Add(CatalogNodeVm.ForSkin(name, $"{group.Count:N0} 个文件", category, hero, group.Skin,
-                child => FillSkinAsync(child, group)));
+            node.Children.Add(CatalogNodeVm.ForEntity(node.Section ?? CatalogSection.Champion, group, index,
+                entity.Label, $"{entity.Count:N0} 个文件", entity.Detail,
+                child => FillEntityAsync(child, group, index)));
         }
 
         return Task.CompletedTask;
@@ -290,23 +279,21 @@ public sealed partial class MainViewModel
 
     private const int CatalogFilesPerNode = 5000;
 
-    private Task FillSkinAsync(CatalogNodeVm node, CatalogGroup group)
+    private Task FillEntityAsync(CatalogNodeVm node, int group, int entity)
     {
         if (_catalog is not { } catalog) return Task.CompletedTask;
+        if (entity < 0 || entity >= catalog.Entities.Count) return Task.CompletedTask;
 
-        var entries = catalog.EntriesOf(group);
-        var championFolder = group.Hero >= 0 ? catalog.Heroes[group.Hero].Folder : string.Empty;
-        var skinFolder = group.Skin >= 0 ? catalog.Skins[group.Skin].Folder : string.Empty;
-
-        var pairs = entries
-            .Select(entry => (Entry: entry, Relative: CatalogPaths.RelativeOf(entry.Path, championFolder, skinFolder)))
+        var anchor = catalog.Entities[entity].Anchor;
+        var pairs = catalog.EntriesOf(group, entity)
+            .Select(entry => (Entry: entry, Relative: CatalogPaths.RelativeOf(entry.Path, anchor)))
             .ToList();
 
         FillFolder(node, pairs, string.Empty);
         return Task.CompletedTask;
     }
 
-    /// <summary>Fills one folder level of a group: sub folders first, then the files beside them.</summary>
+    /// <summary>Fills one folder level of an entity: sub folders first, then the files beside them.</summary>
     private static void FillFolder(CatalogNodeVm node, IReadOnlyList<(CatalogEntry Entry, string Relative)> pairs, string prefix)
     {
         node.Children.Clear();
@@ -363,7 +350,7 @@ public sealed partial class MainViewModel
         var root = CatalogNodeVm.SearchRoot(query, result.Total, node =>
         {
             node.Children.Clear();
-            foreach (var entry in result.Entries) node.Children.Add(CatalogNodeVm.ForFile(entry));
+            foreach (var entry in result.Entries) node.Children.Add(CatalogNodeVm.ForFile(entry, CatalogLocationOf(entry)));
             if (result.Truncated)
                 node.Children.Add(CatalogNodeVm.Message($"只列出前 {result.Entries.Count:N0} 个，共 {result.Total:N0} 个命中"));
             return Task.CompletedTask;
@@ -372,6 +359,17 @@ public sealed partial class MainViewModel
         root.IsExpanded = true;
         CatalogSearchRoots.Add(root);
         RaiseCatalogSearchState();
+    }
+
+    /// <summary>"英雄 · Ahri · Base" for one search hit, so a result says where it lives.</summary>
+    private string CatalogLocationOf(CatalogEntry entry)
+    {
+        if (_catalog is not { } catalog) return CatalogSectionInfo.Of(entry.Section).Display;
+        var group = entry.Group >= 0 && entry.Group < catalog.Groups.Count ? catalog.Groups[entry.Group].Label : string.Empty;
+        var entity = entry.Entity >= 0 && entry.Entity < catalog.Entities.Count ? catalog.Entities[entry.Entity].Label : string.Empty;
+        var parts = new[] { CatalogSectionInfo.Of(entry.Section).Display, group, entity }
+            .Where(part => !string.IsNullOrWhiteSpace(part));
+        return string.Join(" · ", parts);
     }
 
     private void RaiseCatalogSearchState()
@@ -470,6 +468,16 @@ public sealed partial class MainViewModel
 
     // ── override commands ───────────────────────────────────────────────────────────────────
 
+    private IReadOnlyList<CatalogEntry> EntriesOfNode(CatalogNodeVm node)
+    {
+        if (_catalog is not { } catalog) return Array.Empty<CatalogEntry>();
+        if (node.Entry is { } entry) return new[] { entry };
+        if (node.Group >= 0 && node.Entity >= 0) return catalog.EntriesOf(node.Group, node.Entity);
+        if (node.Group >= 0) return catalog.EntriesOf(node.Group);
+        if (node.Section is { } section) return catalog.EntriesOf(section);
+        return Array.Empty<CatalogEntry>();
+    }
+
     /// <summary>
     /// Path prefix a rule for the selected node should cover: the folder the node's entries live in,
     /// or the file itself when a single entry is selected.
@@ -478,15 +486,7 @@ public sealed partial class MainViewModel
     {
         if (node.Entry is { } entry) return entry.Path;
 
-        if (_catalog is not { } catalog) return string.Empty;
-        var entries = node switch
-        {
-            { Category: { } category, Hero: >= 0, Skin: >= 0 } => catalog.EntriesOf(category, node.Hero, node.Skin),
-            { Category: { } category, Hero: >= 0 } => catalog.EntriesOf(category, node.Hero),
-            { Category: { } category } => catalog.EntriesOf(category),
-            _ => Array.Empty<CatalogEntry>(),
-        };
-
+        var entries = EntriesOfNode(node);
         if (entries.Count == 0) return string.Empty;
         var prefix = entries[0].Path;
         foreach (var other in entries)
@@ -502,37 +502,37 @@ public sealed partial class MainViewModel
         return slash > 0 ? prefix[..slash] : prefix;
     }
 
-    private async void ApplyCatalogCategory(string categoryKey)
+    private async void ApplyCatalogSection(string sectionKey)
     {
         if (_selectedCatalogNode is not { } node) return;
-        if (!CatalogCategoryInfo.TryParse(categoryKey, out var category)) return;
+        if (!CatalogSectionInfo.TryParse(sectionKey, out var section)) return;
 
         var prefix = CatalogPrefixOf(node);
         if (prefix.Length == 0)
         {
-            StatusText = "这个节点没有可用的路径前缀，请选中下面的英雄或皮肤";
+            StatusText = "这个节点没有可用的路径前缀，请选中下面的组或条目";
             return;
         }
 
         _catalog?.Overrides.AddRule(new CatalogRule
         {
             PathPrefix = prefix,
-            Category = category.ToString(),
+            Section = section.ToString(),
             Note = $"界面设置 {DateTime.Now:yyyy-MM-dd HH:mm}",
         });
 
-        Log($"分类覆盖：{prefix} → {CatalogCategoryInfo.Of(category).Display}");
+        Log($"分类覆盖：{prefix} → {CatalogSectionInfo.Of(section).Display}");
         await BuildCatalogAsync(force: true);
-        StatusText = $"已把 {prefix} 归到「{CatalogCategoryInfo.Of(category).Display}」，可随时在右键菜单里还原";
+        StatusText = $"已把 {prefix} 归到「{CatalogSectionInfo.Of(section).Display}」，可随时在右键菜单里还原";
     }
 
-    private async void AssignCatalogChampion()
+    private async void AssignCatalogGroup()
     {
         if (_selectedCatalogNode is not { } node) return;
         var name = CatalogAssignName.Trim();
         if (name.Length == 0)
         {
-            StatusText = "先在「归属到英雄」里填英雄名或目录名";
+            StatusText = "先在「归属到组」里填英雄别名或组名";
             return;
         }
 
@@ -546,7 +546,7 @@ public sealed partial class MainViewModel
         _catalog?.Overrides.AddRule(new CatalogRule
         {
             PathPrefix = prefix,
-            Champion = name,
+            Group = name,
             Note = $"界面设置 {DateTime.Now:yyyy-MM-dd HH:mm}",
         });
 
@@ -595,7 +595,7 @@ public sealed partial class MainViewModel
     public Task ExportSelectedCatalogAsync() => ExportCatalogAsync();
 
     /// <summary>
-    /// Exports what the selected catalog node covers into <c>输出目录\类别\英雄\皮肤\…</c>. The file
+    /// Exports what the selected catalog node covers into <c>输出目录\类别\组\条目\…</c>. The file
     /// list is narrowed to the hashes of the node, so only the chosen part of the wad is written.
     /// </summary>
     private async Task ExportCatalogAsync()
@@ -607,17 +607,8 @@ public sealed partial class MainViewModel
             return;
         }
 
-        var entries = node.Entry is not null
-            ? new[] { node.Entry }
-            : node switch
-            {
-                { Category: { } category, Hero: >= 0, Skin: >= 0 } => catalog.EntriesOf(category, node.Hero, node.Skin).ToArray(),
-                { Category: { } category, Hero: >= 0 } => catalog.EntriesOf(category, node.Hero).ToArray(),
-                { Category: { } category } => catalog.EntriesOf(category).ToArray(),
-                _ => Array.Empty<CatalogEntry>(),
-            };
-
-        if (entries.Length == 0)
+        var entries = EntriesOfNode(node);
+        if (entries.Count == 0)
         {
             StatusText = "这个节点下没有可导出的文件";
             return;
@@ -626,11 +617,23 @@ public sealed partial class MainViewModel
         var output = Path.GetFullPath(OutputRootText);
         var destinations = new Dictionary<ulong, string>();
         var wads = new List<string>();
+
+        // The same node can cover several entities (a whole section or group), and every entity's
+        // folder gets its own info.json, so group the entries by the entity they land in.
+        var byEntity = new Dictionary<int, List<CatalogInfoEntry>>();
+        var sizes = new Dictionary<int, long>();
         foreach (var entry in entries)
         {
-            var heroFolder = entry.Hero >= 0 ? catalog.Heroes[entry.Hero] : null;
-            var skinFolder = entry.Skin > 0 ? catalog.Skins[entry.Skin] : null;
-            destinations[entry.Hash] = CatalogPaths.ExportPathOf(entry, heroFolder, skinFolder);
+            var section = CatalogSectionInfo.Of(entry.Section);
+            var entity = catalog.Entities[entry.Entity];
+            destinations[entry.Hash] = CatalogPaths.ExportPathOf(entry, section, catalog.Groups[entry.Group], entity);
+
+            var relative = CatalogPaths.RelativeOf(entry.Path, entity.Anchor);
+            if (relative.Length == 0) relative = CatalogPaths.SafeFolderOf(entry.FileName);
+            if (!byEntity.TryGetValue(entry.Entity, out var files)) byEntity[entry.Entity] = files = new();
+            files.Add(new CatalogInfoEntry(relative, entry.Path, PathHashing.ToText(entry.Hash),
+                entry.Size, Path.GetFileName(entry.WadPath), entry.Extension));
+            sizes[entry.Entity] = sizes.GetValueOrDefault(entry.Entity) + entry.Size;
 
             if (!wads.Contains(entry.WadPath, StringComparer.OrdinalIgnoreCase)) wads.Add(entry.WadPath);
         }
@@ -655,7 +658,7 @@ public sealed partial class MainViewModel
         };
 
         var label = node.Entry is null ? node.Name : node.Entry.FileName;
-        Log($"按分类导出「{label}」：{entries.Length:N0} 个文件 / {wads.Count} 个 wad → {output}");
+        Log($"按分类导出「{label}」：{entries.Count:N0} 个文件 / {wads.Count} 个 wad → {output}");
 
         await RunBusyAsync("按分类导出…", async () =>
         {
@@ -673,6 +676,40 @@ public sealed partial class MainViewModel
             StatusText = summary.Describe();
             Log(summary.ManifestPath is null ? summary.Describe() : $"{summary.Describe()}；清单 {Path.GetFileName(summary.ManifestPath)}");
             foreach (var error in summary.Errors.Take(5)) Log("失败：" + error);
+
+            var written = await Task.Run(() => WriteCatalogInfo(output, catalog, byEntity, sizes));
+            Log($"信息 JSON：{written:N0} 个条目文件夹各写一份 {CatalogInfo.FileName}");
         });
+    }
+
+    /// <summary>
+    /// Writes one <c>info.json</c> into every entity folder of an export: the node the files belong to
+    /// plus the original path, hash, size and wad of each file, so an exported folder still explains
+    /// itself after it has been moved away from the tool.
+    /// </summary>
+    private static int WriteCatalogInfo(string output, AssetCatalog catalog,
+        IReadOnlyDictionary<int, List<CatalogInfoEntry>> byEntity, IReadOnlyDictionary<int, long> sizes)
+    {
+        var generatedAt = DateTime.Now.ToString("yyyy-MM-ddTHH:mm:sszzz", System.Globalization.CultureInfo.InvariantCulture);
+        var tool = $"LolDataExtractor {AppInfo.Version}";
+        var written = 0;
+
+        foreach (var (entityIndex, files) in byEntity)
+        {
+            var entity = catalog.Entities[entityIndex];
+            var group = catalog.Groups[entity.Group];
+            var section = CatalogSectionInfo.Of(group.Section);
+            var folder = CatalogPaths.EntityFolderOf(section, group, entity);
+
+            var document = new CatalogInfoDocument(
+                generatedAt, tool, section.Display, group.Label, entity.Label, entity.Anchor, folder,
+                files.Count, sizes.GetValueOrDefault(entityIndex), files);
+
+            CatalogInfo.Write(Path.Combine(output, folder), document,
+                CatalogInfo.NameFor(files.Select(file => file.File)));
+            written++;
+        }
+
+        return written;
     }
 }

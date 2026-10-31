@@ -2,9 +2,9 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:h="http://helix-toolkit.org/wpf">
-    <Grid Background="#F7F9FC">
+    <Grid Background="{DynamicResource HeaderBackground}">
         <h:HelixViewport3D x:Name="Viewport"
-                           Background="#F1F4F9"
+                           Background="{DynamicResource ViewportBackground}"
                            ShowCoordinateSystem="False"
                            ShowViewCube="False"
                            IsHeadLightEnabled="False"
@@ -17,9 +17,9 @@
         <Button x:Name="ResetViewButton"
                 Content="复位视角"
                 FontSize="11"
-                Foreground="#475467"
-                Background="#FFFFFFFF"
-                BorderBrush="#E1E6EF"
+                Foreground="{DynamicResource TertiaryTextBrush}"
+                Background="{DynamicResource ViewportOverlay}"
+                BorderBrush="{DynamicResource ViewportBorder}"
                 Padding="8,3"
                 Margin="8"
                 Cursor="Hand"
@@ -29,7 +29,7 @@
                 Click="ResetViewClick" />
 
         <TextBlock x:Name="Hint" Text="左键拖拽旋转 · 右键拖拽平移 · 滚轮缩放"
-                   FontSize="11" Foreground="#98A2B3" Margin="8"
+                   FontSize="11" Foreground="{DynamicResource PlaceholderBrush}" Margin="8"
                    HorizontalAlignment="Left" VerticalAlignment="Bottom"
                    IsHitTestVisible="False" />
     </Grid>

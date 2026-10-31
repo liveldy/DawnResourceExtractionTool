@@ -1,0 +1,81 @@
+<Window x:Class="LolDataExtractor.App.SplashWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:core="clr-namespace:LolDataExtractor.Core;assembly=LolDataExtractor.Core"
+        Title="英雄联盟数据提取工具"
+        WindowStyle="None" ResizeMode="NoResize" WindowState="Maximized"
+        ShowInTaskbar="False" Topmost="True" Background="#0B1220"
+        FontFamily="Microsoft YaHei UI, Segoe UI"
+        TextOptions.TextFormattingMode="Display">
+    <Grid ClipToBounds="True">
+        <!-- 视频读不出来时的底色，见 Backdrop_MediaFailed -->
+        <Rectangle>
+            <Rectangle.Fill>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                    <GradientStop Color="#0B1220" Offset="0" />
+                    <GradientStop Color="#101E38" Offset="0.55" />
+                    <GradientStop Color="#05070C" Offset="1" />
+                </LinearGradientBrush>
+            </Rectangle.Fill>
+        </Rectangle>
+
+        <!-- 背景视频：铺满整屏，循环播放 -->
+        <MediaElement x:Name="Backdrop" Stretch="UniformToFill" IsMuted="True"
+                      LoadedBehavior="Manual" UnloadedBehavior="Manual"
+                      MediaEnded="Backdrop_MediaEnded" MediaFailed="Backdrop_MediaFailed" />
+
+        <!-- 压暗上下两端，文字才看得清 -->
+        <Rectangle>
+            <Rectangle.Fill>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                    <GradientStop Color="#A6000000" Offset="0" />
+                    <GradientStop Color="#3D000000" Offset="0.42" />
+                    <GradientStop Color="#D9000000" Offset="1" />
+                </LinearGradientBrush>
+            </Rectangle.Fill>
+        </Rectangle>
+
+        <StackPanel x:Name="Centre" HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0">
+            <Image Source="pack://application:,,,/Assets/logo.ico" Width="92" Height="92"
+                   RenderOptions.BitmapScalingMode="HighQuality">
+                <Image.Effect>
+                    <DropShadowEffect BlurRadius="30" ShadowDepth="0" Color="#2F6FEB" Opacity="0.6" />
+                </Image.Effect>
+            </Image>
+            <TextBlock Text="英雄联盟数据提取工具" FontSize="38" FontWeight="SemiBold" Foreground="#FFFFFF"
+                       HorizontalAlignment="Center" Margin="0,24,0,0" />
+            <TextBlock Text="GitHub liveldy" FontSize="14"
+                       Foreground="#C7D2E4" HorizontalAlignment="Center" Margin="0,10,0,0" />
+            <TextBlock Text="{x:Static core:AppInfo.Summary}" FontSize="12"
+                       Foreground="#8C9BB5" HorizontalAlignment="Center" Margin="0,6,0,0" />
+
+            <Grid Width="320" Height="3" Margin="0,36,0,0" ClipToBounds="True">
+                <Border Background="#33FFFFFF" CornerRadius="2" />
+                <Border x:Name="Glow" Width="118" Height="3" CornerRadius="2" HorizontalAlignment="Left"
+                        Background="#5B8DEF">
+                    <Border.RenderTransform>
+                        <TranslateTransform x:Name="GlowShift" X="-118" />
+                    </Border.RenderTransform>
+                    <Border.Triggers>
+                        <EventTrigger RoutedEvent="Loaded">
+                            <BeginStoryboard>
+                                <Storyboard RepeatBehavior="Forever">
+                                    <DoubleAnimation Storyboard.TargetName="GlowShift"
+                                                     Storyboard.TargetProperty="X"
+                                                     From="-118" To="320" Duration="0:0:1.6" />
+                                </Storyboard>
+                            </BeginStoryboard>
+                        </EventTrigger>
+                    </Border.Triggers>
+                </Border>
+            </Grid>
+            <TextBlock Text="{Binding StatusText}" FontSize="12" Foreground="#C7D2E4"
+                       HorizontalAlignment="Center" Margin="0,14,0,0" />
+        </StackPanel>
+
+        <!-- 资源就绪后才出现，见 MarkReady -->
+        <TextBlock x:Name="SkipHint" Text="点击继续" FontSize="12" Foreground="#B9C4D6" Opacity="0.85"
+                   Visibility="Collapsed"
+                   HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,44" />
+    </Grid>
+</Window>

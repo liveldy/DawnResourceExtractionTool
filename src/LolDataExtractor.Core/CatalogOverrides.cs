@@ -3,20 +3,20 @@ using System.Text.Json.Serialization;
 
 namespace LolDataExtractor.Core;
 
-/// <summary>One hand-written rule: everything below a path prefix belongs to this bucket.</summary>
+/// <summary>One hand-written rule: everything below a path prefix belongs to this node.</summary>
 public sealed class CatalogRule
 {
     /// <summary>Asset path prefix, e.g. <c>assets/characters/kiwi_</c>; matched case-insensitively.</summary>
     public string PathPrefix { get; set; } = string.Empty;
 
-    /// <summary>Category key (<see cref="CatalogCategory"/> name or its Chinese label); empty keeps the automatic one.</summary>
-    public string? Category { get; set; }
+    /// <summary>Section key (<see cref="CatalogSection"/> name or its Chinese label); empty keeps the automatic one.</summary>
+    public string? Section { get; set; }
 
-    /// <summary>Champion alias or a free label shown as the group; empty keeps the automatic one.</summary>
-    public string? Champion { get; set; }
+    /// <summary>Group label (a champion alias, a skin series, …); empty keeps the automatic one.</summary>
+    public string? Group { get; set; }
 
-    /// <summary>Skin folder or label inside the champion group.</summary>
-    public string? Skin { get; set; }
+    /// <summary>Entity label inside the group (a skin, an item, …); empty keeps the automatic one.</summary>
+    public string? Entity { get; set; }
 
     public bool Hidden { get; set; }
 
@@ -27,11 +27,11 @@ public sealed class CatalogRule
 /// <summary>One hand-written exception for a single entry, addressed by hash.</summary>
 public sealed class CatalogEntryRule
 {
-    public string? Category { get; set; }
+    public string? Section { get; set; }
 
-    public string? Champion { get; set; }
+    public string? Group { get; set; }
 
-    public string? Skin { get; set; }
+    public string? Entity { get; set; }
 
     public bool Hidden { get; set; }
 }

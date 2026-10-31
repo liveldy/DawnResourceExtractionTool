@@ -8,8 +8,9 @@
         Title="英雄联盟数据提取工具"
         Height="900" Width="1500" MinHeight="680" MinWidth="1180"
         WindowStartupLocation="CenterScreen"
+        WindowState="Maximized"
         Icon="pack://application:,,,/Assets/logo.ico"
-        Background="#F2F4F7"
+        Background="{DynamicResource WindowBackground}"
         FontFamily="Microsoft YaHei UI, Segoe UI"
         TextOptions.TextFormattingMode="Display">
     <Window.Resources>
@@ -37,9 +38,9 @@
                     <Image Source="pack://application:,,,/Assets/logo.ico" Width="30" Height="30"
                            RenderOptions.BitmapScalingMode="HighQuality" VerticalAlignment="Center" />
                     <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
-                        <TextBlock Text="英雄联盟数据提取工具" FontSize="17" FontWeight="Bold" Foreground="#101828" />
+                        <TextBlock Text="英雄联盟数据提取工具" FontSize="17" FontWeight="Bold" Foreground="{DynamicResource StrongTextBrush}" />
                         <TextBlock Text="{x:Static core:AppInfo.Summary}" FontSize="11"
-                                   Foreground="{StaticResource MutedBrush}" />
+                                   Foreground="{DynamicResource MutedBrush}" />
                     </StackPanel>
                 </StackPanel>
 
@@ -59,9 +60,26 @@
                 </StackPanel>
 
                 <TextBlock Grid.Column="2" Text="{Binding HashStatus}" FontSize="11" Margin="12,0"
-                           VerticalAlignment="Center" Foreground="{StaticResource MutedBrush}" />
-                <Button Grid.Column="3" Content="下载哈希表" Style="{StaticResource SecondaryAction}"
-                        VerticalAlignment="Center" Command="{Binding DownloadHashesCommand}" />
+                           VerticalAlignment="Center" Foreground="{DynamicResource MutedBrush}" />
+                <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Content="下载哈希表" Style="{StaticResource SecondaryAction}"
+                            Command="{Binding DownloadHashesCommand}" />
+                    <Button Content="关于" Width="60" Margin="8,0,0,0"
+                            Style="{StaticResource SecondaryAction}"
+                            Command="{Binding ShowAboutCommand}"
+                            ToolTip="项目声明与素材版权说明" />
+                    <!-- 方形图标按钮轮流切 黑夜 / 白天 / 跟随系统，选择记在 settings.json 里 -->
+                    <Button Width="30" Padding="0" Margin="8,0,0,0"
+                            Style="{StaticResource SecondaryAction}"
+                            Command="{Binding CycleThemeCommand}"
+                            ToolTip="{Binding ThemeHint}"
+                            HorizontalContentAlignment="Center" VerticalContentAlignment="Center">
+                        <Path Data="{Binding ThemeIcon}" Stroke="{DynamicResource SecondaryTextBrush}"
+                              StrokeThickness="1.6" StrokeLineJoin="Round"
+                              StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                              Width="15" Height="15" Stretch="Uniform" />
+                    </Button>
+                </StackPanel>
             </Grid>
         </Border>
 
@@ -97,7 +115,7 @@
                                     ToolTip="取消列表里当前显示的 wad 的勾选（搜索时只作用在结果上）" />
                         </StackPanel>
                         <TextBlock Text="{Binding SelectionSummary}" FontSize="11" HorizontalAlignment="Right"
-                                   VerticalAlignment="Center" Foreground="{StaticResource MutedBrush}"
+                                   VerticalAlignment="Center" Foreground="{DynamicResource MutedBrush}"
                                    TextTrimming="CharacterEllipsis" ToolTip="{Binding SelectionSummary}" />
                     </DockPanel>
 
@@ -112,7 +130,7 @@
                               VirtualizingStackPanel.IsVirtualizing="True"
                               VirtualizingStackPanel.VirtualizationMode="Recycling">
                         <TreeView.ItemContainerStyle>
-                            <Style TargetType="TreeViewItem">
+                            <Style TargetType="TreeViewItem" BasedOn="{StaticResource {x:Type TreeViewItem}}">
                                 <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
                                 <Setter Property="Padding" Value="0,0,0,0" />
                             </Style>
@@ -123,6 +141,7 @@
                                     <CheckBox IsChecked="{Binding CheckState, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                               IsThreeState="False"
                                               Margin="0,0,5,0" VerticalAlignment="Center"
+                                              Background="{DynamicResource FieldBackground}" BorderBrush="{DynamicResource FieldBorder}"
                                               ToolTip="{Binding CheckToolTip}" />
                                     <TextBlock Text="{Binding Name}" FontSize="12" VerticalAlignment="Center"
                                                TextTrimming="CharacterEllipsis"
@@ -133,14 +152,14 @@
                                                 <Style.Triggers>
                                                     <DataTrigger Binding="{Binding IsFolder}" Value="True">
                                                         <Setter Property="FontWeight" Value="SemiBold" />
-                                                        <Setter Property="Foreground" Value="#475467" />
+                                                        <Setter Property="Foreground" Value="{DynamicResource TertiaryTextBrush}" />
                                                     </DataTrigger>
                                                 </Style.Triggers>
                                             </Style>
                                         </TextBlock.Style>
                                     </TextBlock>
                                     <TextBlock Text="{Binding CountText}" FontSize="10" Margin="6,0,0,0"
-                                               VerticalAlignment="Center" Foreground="{StaticResource MutedBrush}" />
+                                               VerticalAlignment="Center" Foreground="{DynamicResource MutedBrush}" />
                                 </StackPanel>
                             </HierarchicalDataTemplate>
                         </TreeView.ItemTemplate>
@@ -150,7 +169,7 @@
 
             <!-- 左边栏与中间栏之间的分隔条 -->
             <Thumb Grid.Column="1" Width="10" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
-                   Cursor="SizeWE" DragDelta="WadSplitter_DragDelta"
+                   Style="{StaticResource ColumnSplitter}" DragDelta="WadSplitter_DragDelta"
                    ToolTip="拖动调整栏宽" />
 
             <!-- 目录树 -->
@@ -164,18 +183,18 @@
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
-                    <!-- 浏览方式：单个 wad，还是按英雄/皮肤分类的全部资源 -->
+                    <!-- 浏览方式：单个 wad，还是按英雄/皮肤/装备等分好类的全部资源 -->
                     <Grid Grid.Row="0" Margin="0,0,0,6">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
                         <TextBlock Text="浏览" FontSize="11" VerticalAlignment="Center"
-                                   Foreground="{StaticResource MutedBrush}" Margin="0,0,8,0" />
+                                   Foreground="{DynamicResource MutedBrush}" Margin="0,0,8,0" />
                         <ComboBox Grid.Column="1" Height="30"
                                   ItemsSource="{x:Static vm:MainViewModel.BrowseModes}"
                                   SelectedItem="{Binding BrowseMode, Mode=TwoWay}"
-                                  ToolTip="按 wad：一次看一个 wad 的目录；按分类：全部 wad 按 英雄 → 皮肤 归好类" />
+                                  ToolTip="按 wad：一次看一个 wad 的目录；按分类：全部 wad 按 英雄 / 皮肤 / 装备 等归好类" />
                     </Grid>
 
                     <Grid Grid.Row="1" Visibility="{Binding WadMode, Converter={StaticResource BoolToVis}}">
@@ -208,7 +227,7 @@
                                 ToolTip="重新扫描并分类（改了手写规则后会自动重建）" />
                     </Grid>
 
-                    <!-- 人工保底：把选中的节点归属到某个英雄 -->
+                    <!-- 人工保底：把选中的节点归属到某个组（英雄、系列……） -->
                     <Grid Grid.Row="2" Margin="0,6,0,0"
                           Visibility="{Binding CatalogMode, Converter={StaticResource BoolToVis}}">
                         <Grid.ColumnDefinitions>
@@ -218,11 +237,11 @@
                         <TextBox Grid.Column="0" Height="28" VerticalContentAlignment="Center"
                                  Style="{StaticResource PlaceholderTextBox}"
                                  Text="{Binding CatalogAssignName, UpdateSourceTrigger=PropertyChanged}"
-                                 Tag="归属到英雄：填英文别名" />
+                                 Tag="归属到组：英雄别名或组名" />
                         <Button Grid.Column="1" Content="应用" Width="54" Height="28" Margin="8,0,0,0"
                                 Style="{StaticResource SecondaryAction}"
-                                Command="{Binding CatalogAssignChampionCommand}"
-                                ToolTip="把选中节点下的全部文件归到这个英雄（写入 catalog-overrides.json）" />
+                                Command="{Binding CatalogAssignGroupCommand}"
+                                ToolTip="把选中节点下的全部文件归到这个组（写入 catalog-overrides.json）" />
                     </Grid>
 
                     <TreeView Grid.Row="3" Margin="0,8,0,0" BorderThickness="0" Background="Transparent"
@@ -242,7 +261,7 @@
                             </ContextMenu>
                         </TreeView.ContextMenu>
                         <TreeView.ItemContainerStyle>
-                            <Style TargetType="TreeViewItem">
+                            <Style TargetType="TreeViewItem" BasedOn="{StaticResource {x:Type TreeViewItem}}">
                                 <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
                                 <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}" />
                             </Style>
@@ -253,6 +272,7 @@
                                     <CheckBox IsChecked="{Binding CheckState, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                               IsThreeState="False"
                                               Margin="0,0,5,0" VerticalAlignment="Center"
+                                              Background="{DynamicResource FieldBackground}" BorderBrush="{DynamicResource FieldBorder}"
                                               ToolTip="{Binding CheckToolTip}" />
                                     <TextBlock Text="{Binding DisplayName}" FontSize="12"
                                                TextTrimming="CharacterEllipsis" VerticalAlignment="Center">
@@ -268,13 +288,13 @@
                                         </TextBlock.Style>
                                     </TextBlock>
                                     <TextBlock Text="{Binding CountText}" FontSize="10" Margin="8,0,0,0"
-                                               Foreground="#98A2B3" VerticalAlignment="Center" />
+                                               Foreground="{DynamicResource PlaceholderBrush}" VerticalAlignment="Center" />
                                 </StackPanel>
                             </HierarchicalDataTemplate>
                         </TreeView.ItemTemplate>
                     </TreeView>
 
-                    <!-- 分类树：类别 → 英雄 → 皮肤 → 目录 → 文件 -->
+                    <!-- 分类树：类别 → 组 → 条目 → 目录 → 文件 -->
                     <Grid Grid.Row="3" Visibility="{Binding CatalogMode, Converter={StaticResource BoolToVis}}">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="*" />
@@ -293,13 +313,13 @@
                                 <ContextMenu>
                                     <MenuItem Header="导出这个节点（按分类落盘）" Command="{Binding ExportCatalogCommand}" />
                                     <Separator />
-                                    <MenuItem Header="归到分类" ItemsSource="{x:Static core:CatalogCategoryInfo.All}">
+                                    <MenuItem Header="移到分类" ItemsSource="{x:Static core:CatalogSectionInfo.All}">
                                         <MenuItem.ItemContainerStyle>
-                                            <Style TargetType="MenuItem">
+                                            <Style TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
                                                 <Setter Property="Header" Value="{Binding Display}" />
-                                                <Setter Property="CommandParameter" Value="{Binding Category}" />
+                                                <Setter Property="CommandParameter" Value="{Binding Section}" />
                                                 <Setter Property="Command"
-                                                        Value="{Binding DataContext.CatalogCategoryCommand,
+                                                        Value="{Binding DataContext.CatalogSectionCommand,
                                                                         RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
                                             </Style>
                                         </MenuItem.ItemContainerStyle>
@@ -311,7 +331,7 @@
                                 </ContextMenu>
                             </TreeView.ContextMenu>
                             <TreeView.ItemContainerStyle>
-                                <Style TargetType="TreeViewItem">
+                                <Style TargetType="TreeViewItem" BasedOn="{StaticResource {x:Type TreeViewItem}}">
                                     <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
                                     <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}" />
                                 </Style>
@@ -333,13 +353,13 @@
                                                 </Style>
                                             </TextBlock.Style>
                                         </TextBlock>
-                                        <Border Background="#FEF0C7" CornerRadius="2" Padding="4,0" Margin="6,0,0,0"
+                                        <Border Background="{DynamicResource HintBackground}" CornerRadius="2" Padding="4,0" Margin="6,0,0,0"
                                                 VerticalAlignment="Center"
                                                 Visibility="{Binding HasHint, Converter={StaticResource BoolToVis}}">
-                                            <TextBlock Text="{Binding Hint}" FontSize="9" Foreground="#B54708" />
+                                            <TextBlock Text="{Binding Hint}" FontSize="9" Foreground="{DynamicResource WarningText}" />
                                         </Border>
                                         <TextBlock Text="{Binding CountText}" FontSize="10" Margin="8,0,0,0"
-                                                   Foreground="#98A2B3" VerticalAlignment="Center" />
+                                                   Foreground="{DynamicResource PlaceholderBrush}" VerticalAlignment="Center" />
                                     </StackPanel>
                                 </HierarchicalDataTemplate>
                             </TreeView.ItemTemplate>
@@ -354,7 +374,7 @@
                                   VirtualizingStackPanel.VirtualizationMode="Recycling"
                                   ScrollViewer.HorizontalScrollBarVisibility="Auto">
                             <TreeView.ItemContainerStyle>
-                                <Style TargetType="TreeViewItem">
+                                <Style TargetType="TreeViewItem" BasedOn="{StaticResource {x:Type TreeViewItem}}">
                                     <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
                                     <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}" />
                                 </Style>
@@ -364,26 +384,29 @@
                                     <StackPanel Orientation="Horizontal" Margin="0,1" ToolTip="{Binding ToolTip}">
                                         <TextBlock Text="{Binding Name}" FontSize="12" VerticalAlignment="Center"
                                                    TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="{Binding Location}" FontSize="10" Margin="8,0,0,0"
+                                                   Foreground="{DynamicResource PlaceholderBrush}" VerticalAlignment="Center"
+                                                   Visibility="{Binding HasLocation, Converter={StaticResource BoolToVis}}" />
                                         <TextBlock Text="{Binding CountText}" FontSize="10" Margin="8,0,0,0"
-                                                   Foreground="#98A2B3" VerticalAlignment="Center" />
+                                                   Foreground="{DynamicResource PlaceholderBrush}" VerticalAlignment="Center" />
                                     </StackPanel>
                                 </HierarchicalDataTemplate>
                             </TreeView.ItemTemplate>
                         </TreeView>
 
                         <TextBlock Grid.Row="1" Text="{Binding CatalogStatus}" Margin="0,6,0,0" FontSize="11"
-                                   TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}" />
+                                   TextWrapping="Wrap" Foreground="{DynamicResource MutedBrush}" />
                     </Grid>
 
                     <TextBlock Grid.Row="4" Text="{Binding TreeSummary}" Margin="0,6,0,0" FontSize="11"
                                Visibility="{Binding WadMode, Converter={StaticResource BoolToVis}}"
-                               Foreground="{StaticResource MutedBrush}" />
+                               Foreground="{DynamicResource MutedBrush}" />
                 </Grid>
             </Border>
 
             <!-- 中间栏与右边栏之间的分隔条 -->
             <Thumb Grid.Column="3" Width="10" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
-                   Cursor="SizeWE" DragDelta="PreviewSplitter_DragDelta"
+                   Style="{StaticResource ColumnSplitter}" DragDelta="PreviewSplitter_DragDelta"
                    ToolTip="拖动调整栏宽" />
 
             <!-- 右侧：预览 / 导出设置 -->
@@ -406,24 +429,24 @@
                                         Command="{Binding ExportCurrentCommand}" />
                                 <StackPanel>
                                     <TextBlock Text="{Binding PreviewTitle}" FontSize="13" FontWeight="SemiBold"
-                                               Foreground="#1D2939" TextTrimming="CharacterEllipsis"
+                                               Foreground="{DynamicResource BodyTextBrush}" TextTrimming="CharacterEllipsis"
                                                ToolTip="{Binding PreviewTitle}" />
                                     <TextBlock Text="{Binding PreviewSubtitle}" FontSize="11" Margin="0,2,0,0"
-                                               Foreground="{StaticResource MutedBrush}" TextTrimming="CharacterEllipsis"
+                                               Foreground="{DynamicResource MutedBrush}" TextTrimming="CharacterEllipsis"
                                                ToolTip="{Binding PreviewSubtitle}" />
                                 </StackPanel>
                             </DockPanel>
 
-                            <Border Grid.Row="1" Margin="0,8,0,0" Padding="8,6" CornerRadius="6" Background="#FFF7E6"
-                                    BorderBrush="#FDE6B8" BorderThickness="1"
+                            <Border Grid.Row="1" Margin="0,8,0,0" Padding="8,6" CornerRadius="6" Background="{DynamicResource WarningBackground}"
+                                    BorderBrush="{DynamicResource WarningBorder}" BorderThickness="1"
                                     Visibility="{Binding ShowMessage, Converter={StaticResource BoolToVis}}">
                                 <TextBlock Text="{Binding PreviewMessage}" TextWrapping="Wrap" FontSize="11"
-                                           Foreground="#8A5A00" />
+                                           Foreground="{DynamicResource WarningStrongText}" />
                             </Border>
 
                             <Grid Grid.Row="2" Margin="0,8,0,0">
                                 <!-- 图片 -->
-                                <Border Background="#F7F9FC" CornerRadius="6" Padding="4"
+                                <Border Background="{DynamicResource HeaderBackground}" CornerRadius="6" Padding="4"
                                         Visibility="{Binding ShowImage, Converter={StaticResource BoolToVis}}">
                                     <Image Source="{Binding PreviewImage}" Stretch="Uniform"
                                            StretchDirection="DownOnly"
@@ -447,7 +470,7 @@
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Text="贴图" FontSize="11" VerticalAlignment="Center"
-                                                       Foreground="{StaticResource MutedBrush}" />
+                                                       Foreground="{DynamicResource MutedBrush}" />
                                             <ComboBox Grid.Column="1" Height="26" FontSize="11"
                                                       ItemsSource="{Binding TextureChoices}"
                                                       SelectedItem="{Binding SelectedTextureChoice}"
@@ -465,7 +488,7 @@
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Text="骨骼" FontSize="11" VerticalAlignment="Center"
-                                                       Foreground="{StaticResource MutedBrush}" />
+                                                       Foreground="{DynamicResource MutedBrush}" />
                                             <ComboBox Grid.Column="1" Height="26" FontSize="11"
                                                       ItemsSource="{Binding SkeletonChoices}"
                                                       SelectedItem="{Binding SelectedSkeletonChoice}"
@@ -483,7 +506,7 @@
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Text="动画" FontSize="11" VerticalAlignment="Center"
-                                                       Foreground="{StaticResource MutedBrush}" />
+                                                       Foreground="{DynamicResource MutedBrush}" />
                                             <ComboBox Grid.Column="1" Height="26" FontSize="11"
                                                       ItemsSource="{Binding AnimationChoices}"
                                                       SelectedItem="{Binding SelectedAnimationChoice}"
@@ -509,14 +532,14 @@
                                             </StackPanel>
                                             <TextBlock Grid.Column="1" Text="{Binding AnimationStatus}" FontSize="10"
                                                        Margin="8,0,0,0" VerticalAlignment="Center"
-                                                       Foreground="{StaticResource MutedBrush}"
+                                                       Foreground="{DynamicResource MutedBrush}"
                                                        TextTrimming="CharacterEllipsis"
                                                        ToolTip="{Binding AnimationStatus}" />
                                         </Grid>
 
                                         <!-- 每个子网格分到的贴图（多贴图皮肤才有） -->
                                         <TextBlock Text="{Binding TextureBindingNote}" FontSize="10" Margin="0,3,0,0"
-                                                   Foreground="{StaticResource MutedBrush}"
+                                                   Foreground="{DynamicResource MutedBrush}"
                                                    TextTrimming="CharacterEllipsis"
                                                    ToolTip="{Binding TextureBindingNote}"
                                                    Visibility="{Binding HasTextureBinding, Converter={StaticResource BoolToVis}}" />
@@ -530,7 +553,7 @@
                                 <DockPanel Visibility="{Binding ShowAudio, Converter={StaticResource BoolToVis}}">
                                     <StackPanel DockPanel.Dock="Bottom" Margin="0,8,0,0">
                                         <TextBlock Text="{Binding AudioStatus}" FontSize="11" TextWrapping="Wrap"
-                                                   Foreground="{StaticResource MutedBrush}" Margin="0,0,0,6" />
+                                                   Foreground="{DynamicResource MutedBrush}" Margin="0,0,0,6" />
                                         <Button Content="下载音频解码工具（vgmstream）" Height="28" FontSize="11"
                                                 Margin="0,0,0,4"
                                                 Style="{StaticResource SecondaryAction}"
@@ -561,7 +584,7 @@
                                                     Style="{StaticResource SecondaryAction}" />
                                         </StackPanel>
                                         <TextBlock Text="{Binding SpeechStatus}" FontSize="10" Margin="0,4,0,0"
-                                                   TextWrapping="Wrap" Foreground="{StaticResource AccentBrush}" />
+                                                   TextWrapping="Wrap" Foreground="{DynamicResource AccentBrush}" />
 
                                         <TextBlock Text="备注（自动保存，可手工修改）" Style="{StaticResource FieldLabel}"
                                                    Margin="0,8,0,2" />
@@ -574,7 +597,7 @@
 
                                     <ListBox ItemsSource="{Binding AudioTracks}"
                                              SelectedItem="{Binding SelectedAudioTrack}"
-                                             BorderThickness="1" BorderBrush="#E4E7EC" FontSize="11"
+                                             BorderThickness="1" BorderBrush="{DynamicResource PanelBorder}" FontSize="11"
                                              HorizontalContentAlignment="Stretch"
                                              ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                                         <ListBox.ItemTemplate>
@@ -591,10 +614,10 @@
                                                     <TextBlock Text="{Binding Title}" FontFamily="Consolas" FontSize="11"
                                                                VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                                                     <TextBlock Grid.Column="1" Text="{Binding Detail}" FontSize="10"
-                                                               Foreground="#98A2B3" VerticalAlignment="Center"
+                                                               Foreground="{DynamicResource PlaceholderBrush}" VerticalAlignment="Center"
                                                                Margin="12,0,0,0" />
                                                     <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Text="{Binding NotePreview}"
-                                                               FontSize="10" Margin="0,1,0,0" Foreground="#475467"
+                                                               FontSize="10" Margin="0,1,0,0" Foreground="{DynamicResource TertiaryTextBrush}"
                                                                TextTrimming="CharacterEllipsis"
                                                                ToolTip="{Binding Note}"
                                                                Visibility="{Binding HasNote, Converter={StaticResource BoolToVis}}" />
@@ -609,7 +632,7 @@
                                          Visibility="{Binding ShowText, Converter={StaticResource BoolToVis}}"
                                          FontFamily="Consolas" FontSize="11" TextWrapping="Wrap"
                                          VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
-                                         BorderBrush="#E4E7EC" Background="#FBFCFD" />
+                                         BorderBrush="{DynamicResource PanelBorder}" Background="{DynamicResource SubtleBackground}" />
 
                                 <!-- JSON：格式化、可搜索、点路径跳转 -->
                                 <controls:JsonViewer Text="{Binding PreviewJson}"
@@ -622,7 +645,7 @@
                                          FontFamily="Consolas" FontSize="11" TextWrapping="NoWrap"
                                          AcceptsReturn="True"
                                          VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
-                                         BorderBrush="#E4E7EC" Background="#FBFCFD" />
+                                         BorderBrush="{DynamicResource PanelBorder}" Background="{DynamicResource SubtleBackground}" />
                             </Grid>
                         </Grid>
                     </TabItem>
@@ -741,13 +764,13 @@
                                             <ColumnDefinition Width="*" />
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Text="线程数" VerticalAlignment="Center" FontSize="12"
-                                                   Foreground="{StaticResource MutedBrush}" />
+                                                   Foreground="{DynamicResource MutedBrush}" />
                                         <TextBox Grid.Column="1" Height="28" Margin="8,0,0,0" FontSize="12"
                                                  VerticalContentAlignment="Center"
                                                  Style="{StaticResource PlaceholderTextBox}" Tag="16"
                                                  Text="{Binding ThreadCount, UpdateSourceTrigger=PropertyChanged}" />
                                         <TextBlock Grid.Column="2" Text="音频格式" Margin="12,0,0,0" VerticalAlignment="Center"
-                                                   FontSize="12" Foreground="{StaticResource MutedBrush}" />
+                                                   FontSize="12" Foreground="{DynamicResource MutedBrush}" />
                                         <ComboBox Grid.Column="3" Height="28" Margin="8,0,0,0" FontSize="12"
                                                   ItemsSource="{x:Static vm:MainViewModel.AudioFormats}"
                                                   SelectedItem="{Binding SelectedAudioFormat}"
@@ -801,22 +824,22 @@
 
                             <!-- 进度区 -->
                             <Border Grid.Row="2" Margin="0,6,0,0" Padding="10,6" CornerRadius="6"
-                                    Background="#F7F9FC" BorderBrush="{StaticResource PanelBorder}" BorderThickness="1">
+                                    Background="{DynamicResource HeaderBackground}" BorderBrush="{DynamicResource PanelBorder}" BorderThickness="1">
                                 <StackPanel>
                                     <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Text="导出进度" FontSize="12" FontWeight="SemiBold" Foreground="#1D2939" />
+                                        <TextBlock Text="导出进度" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource BodyTextBrush}" />
                                         <TextBlock Grid.Column="1" Text="{Binding ProgressValue, StringFormat={}{0:F0}%}"
-                                                   FontSize="12" Foreground="{StaticResource AccentBrush}" />
+                                                   FontSize="12" Foreground="{DynamicResource AccentBrush}" />
                                     </Grid>
 
                                     <ProgressBar Height="8" Margin="0,4,0,0" Minimum="0" Maximum="100"
                                                  Value="{Binding ProgressValue, Mode=OneWay}"
-                                                 Foreground="{StaticResource AccentBrush}"
-                                                 Background="#E4E7EC" BorderThickness="0">
+                                                 Foreground="{DynamicResource AccentBrush}"
+                                                 Background="{DynamicResource ProgressTrack}" BorderThickness="0">
                                         <ProgressBar.Template>
                                             <ControlTemplate TargetType="ProgressBar">
                                                 <Border Background="{TemplateBinding Background}" CornerRadius="4"
@@ -838,7 +861,7 @@
                                             <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Text="{Binding StatusText}" FontSize="11" VerticalAlignment="Center"
-                                                   Foreground="{StaticResource MutedBrush}"
+                                                   Foreground="{DynamicResource MutedBrush}"
                                                    TextTrimming="CharacterEllipsis" ToolTip="{Binding StatusText}" />
                                         <Button Grid.Column="1" Content="取消" Width="70" Height="26" FontSize="11"
                                                 Margin="8,0,0,0" Style="{StaticResource SecondaryAction}"
@@ -870,8 +893,8 @@
                                         Command="{Binding ClearLogCommand}" />
                             </Grid>
 
-                            <ListBox Grid.Row="1" ItemsSource="{Binding Logs}" BorderThickness="1" BorderBrush="#E4E7EC"
-                                     FontSize="11" Background="#FBFCFD"
+                            <ListBox Grid.Row="1" ItemsSource="{Binding Logs}" BorderThickness="1" BorderBrush="{DynamicResource PanelBorder}"
+                                     FontSize="11" Background="{DynamicResource SubtleBackground}"
                                      ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                                 <ListBox.ItemTemplate>
                                     <DataTemplate>
@@ -886,10 +909,32 @@
         </Grid>
 
         <!-- 状态栏 -->
-        <Border Grid.Row="2" Margin="0,10,0,0" Padding="12,8" CornerRadius="8" Background="#FFFFFF"
-                BorderBrush="{StaticResource PanelBorder}" BorderThickness="1">
-            <TextBlock Text="{Binding StatusText}" FontSize="12" Foreground="#344054"
+        <Border Grid.Row="2" Margin="0,10,0,0" Padding="12,8" CornerRadius="8" Background="{DynamicResource PanelBackground}"
+                BorderBrush="{DynamicResource PanelBorder}" BorderThickness="1">
+            <TextBlock Text="{Binding StatusText}" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}"
                        TextTrimming="CharacterEllipsis" />
         </Border>
+
+        <!-- 关于：只列声明，点关闭回到原界面 -->
+        <Grid Grid.Row="0" Grid.RowSpan="3" Panel.ZIndex="10" Background="{DynamicResource OverlayBrush}"
+              Visibility="{Binding IsAboutOpen, Converter={StaticResource BoolToVis}}">
+            <Border Width="560" Padding="22,18" CornerRadius="10" Background="{DynamicResource PanelBackground}"
+                    BorderBrush="{DynamicResource PanelBorder}" BorderThickness="1"
+                    HorizontalAlignment="Center" VerticalAlignment="Center">
+                <StackPanel>
+                    <TextBlock Text="关于" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource StrongTextBrush}" />
+                    <TextBlock Text="{Binding AboutText}" FontSize="12" TextWrapping="Wrap" Margin="0,10,0,0"
+                               LineHeight="20" Foreground="{DynamicResource SecondaryTextBrush}" />
+                    <TextBlock FontSize="12" Margin="0,10,0,0" Foreground="{DynamicResource SecondaryTextBrush}">
+                        <Run Text="项目地址：" />
+                        <Hyperlink NavigateUri="https://github.com/liveldy/LolDataExtractor"
+                                   Foreground="{DynamicResource AccentBrush}"
+                                   RequestNavigate="AboutLink_RequestNavigate">GitHub liveldy</Hyperlink>
+                    </TextBlock>
+                    <Button Content="关闭" Width="72" Height="30" Margin="0,16,0,0" HorizontalAlignment="Right"
+                            Style="{StaticResource SecondaryAction}" Command="{Binding CloseAboutCommand}" />
+                </StackPanel>
+            </Border>
+        </Grid>
     </Grid>
 </Window>

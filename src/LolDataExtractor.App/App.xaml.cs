@@ -34,16 +34,60 @@ public partial class App : Application
         var catalog = GetArgument(e.Args, "--catalog");
         var catalogSelect = GetArgument(e.Args, "--catalog-select");
         var catalogExport = GetArgument(e.Args, "--catalog-export");
+        var catalogExportScope = GetArgument(e.Args, "--catalog-export-scope");
         var jsonJump = HasFlag(e.Args, "--json-jump");
         var catalogSearch = GetArgument(e.Args, "--catalog-search");
+        var about = HasFlag(e.Args, "--about");
+        var splashPreview = HasFlag(e.Args, "--splash");
+        var hashSmoke = HasFlag(e.Args, "--hash-smoke");
+        var resourceCheck = HasFlag(e.Args, "--resources");
+        var theme = GetArgument(e.Args, "--theme");
 
         var window = new MainWindow();
         MainWindow = window;
-        window.Show();
+
+        // 主题：主窗口构造时已按 settings.json 装好，这里只给自检换一次并记进日志。
+        if (theme is not null)
+        {
+            window.ViewModel.SetTheme(Services.ThemeService.Parse(theme));
+            window.ViewModel.Log($"自检：主题 = {window.ViewModel.ThemeDetail}");
+        }
+
+        // 开局页：程序目录里有 load.mp4 就全屏播一遍，主窗口在它后面准备。带参数启动的都是自检，
+        // 不显示开局页，截图流程才不会被它挡住。
+        var selfTest = e.Args.Length > 0;
+        SplashWindow? splash = null;
+        if ((!selfTest || splashPreview) && SplashWindow.VideoPath is { } videoPath)
+        {
+            splash = new SplashWindow(videoPath);
+            splash.Attach(window.ViewModel);
+            splash.Show();
+        }
+        else
+        {
+            window.Show();
+        }
 
         try
         {
             await window.InitializeAsync(root);
+
+            // 资源检查：开局页还在时把要下载的东西补齐（哈希表、音频解码工具、语音模型…），
+            // 清单在 ViewModels/MainViewModel.Resources.cs 的 BuildResourceList，加新资源只加一行。自检启动不触发。
+            if (resourceCheck)
+            {
+                window.ViewModel.Log($"自检：资源 {window.ViewModel.ResourceSummary}；全部就绪 = {window.ViewModel.AllResourcesReady}");
+            }
+            else if (hashSmoke)
+            {
+                var needed = window.ViewModel.NeedsHashTable;
+                var ready = await window.ViewModel.EnsureHashTableAsync();
+                window.ViewModel.Log($"自检：哈希表检查 → 需要下载 = {needed}，就绪 = {ready}；{window.ViewModel.HashStatus}");
+            }
+            else if (!selfTest)
+            {
+                await window.ViewModel.EnsureAllResourcesAsync();
+            }
             if (wad is not null) await window.SelectWadAsync(wad);
             if (select is not null) await window.SelectEntryAsync(select);
             if (checkAll) window.ViewModel.CheckAllEntries();
@@ -61,7 +105,7 @@ public partial class App : Application
             if (catalog is not null || catalogSelect is not null || catalogExport is not null || jsonJump
                 || catalogSearch is not null)
             {
-                var opened = await window.ShowCatalogAsync(catalogSelect ?? catalog);
+                var opened = await window.ShowCatalogAsync(catalogSelect ?? catalog, catalogExportScope);
                 window.ViewModel.Log($"自检：分类浏览 {(opened ? "已打开" : "没有分类节点")} → {window.ViewModel.CatalogStatus}");
             }
             if (catalogExport is not null)
@@ -77,6 +121,7 @@ public partial class App : Application
                 window.ViewModel.Log($"自检：分类搜索「{catalogSearch}」→ {(hit is null ? "没有结果" : hit.CountText)}" +
                                      $"（显示搜索 {window.ViewModel.CatalogShowingSearch} / 树可见 {window.ViewModel.CatalogTreeVisible}）");
             }
+            if (about) window.ViewModel.ShowAboutCommand.Execute(null);
             if (jsonJump) await RunJsonJumpAsync(window);
             if (playAnim) await RunAnimationSmokeTestAsync(window);
             if (audioSmoke) await RunAudioSmokeTestAsync(window);
@@ -88,14 +133,30 @@ public partial class App : Application
         }
         catch (Exception ex)
         {
+            // 开局页盖在最上层，先关掉它，错误提示才看得见。
+            if (splash is not null && splash.IsVisible) splash.Close();
             MessageBox.Show(ex.Message, "英雄联盟数据提取工具", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+
+        // 资源都就绪了才解锁「进入」：下载途中点一下跳过去，会让人对着空窗口等索引。
+        if (splash is not null && !splashPreview)
+        {
+            splash.MarkReady();
+            await splash.WaitForSkipAsync();
+            window.Show();
+            window.Activate();
         }
 
         if (screenshot is not null)
         {
             await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
             await Task.Delay(1500);
-            SaveScreenshot(window, screenshot);
+
+            // --splash 时截图拍的是开局页，并顺手把解码结果记进日志。
+            var target = splashPreview && splash is not null ? (Window)splash : window;
+            if (splashPreview && splash is not null)
+                window.ViewModel.Log($"自检：开局页 {splash.VideoWidth}×{splash.VideoHeight}，播放到 {splash.PositionText}");
+            SaveScreenshot(target, screenshot);
             SaveLog(window, screenshot);
             Shutdown();
         }

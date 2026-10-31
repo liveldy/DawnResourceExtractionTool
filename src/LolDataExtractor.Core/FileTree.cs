@@ -55,11 +55,12 @@ public static class FileTree
         "bin" => "数据",
         "text" => "文本",
         "shader" => "着色器",
+        "video" => "视频",
         _ => "其他",
     };
 
     /// <summary>Fixed order of the category roots, textures first because they are everywhere.</summary>
-    private static readonly string[] CategoryOrder = { "texture", "model", "audio", "bin", "text", "shader", "other" };
+    private static readonly string[] CategoryOrder = { "texture", "model", "audio", "video", "bin", "text", "shader", "other" };
 
     private const string UnnamedRootName = "未命名条目";
 

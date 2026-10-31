@@ -28,6 +28,14 @@ public class FileTypeSnifferTests
         Assert.Equal("skl", FileTypeSniffer.DetectExtension(new byte[] { 0xE0, 0x17, 0x00, 0x00, 0xC3, 0x4F, 0xFD, 0x22 }));
     }
 
+    /// <summary>WebM is a Matroska/EBML container; MP4 announces itself with an ftyp box.</summary>
+    [Fact]
+    public void Detects_video_signatures()
+    {
+        Assert.Equal("webm", FileTypeSniffer.DetectExtension(new byte[] { 0x1A, 0x45, 0xDF, 0xA3, 0x01, 0x00 }));
+        Assert.Equal("mp4", FileTypeSniffer.DetectExtension(new byte[] { 0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70 }));
+    }
+
     [Fact]
     public void Returns_null_for_unknown_binary()
         => Assert.Null(FileTypeSniffer.DetectExtension(new byte[] { 0x00, 0x01, 0x00, 0x02, 0x00, 0x03 }));
@@ -37,6 +45,9 @@ public class FileTypeSnifferTests
     [InlineData(".dds", "texture")]
     [InlineData("skn", "model")]
     [InlineData("bnk", "audio")]
+    [InlineData("webm", "video")]
+    [InlineData(".webm", "video")]
+    [InlineData("mp4", "video")]
     [InlineData("bin", "bin")]
     [InlineData("json", "text")]
     [InlineData("dx11", "shader")]

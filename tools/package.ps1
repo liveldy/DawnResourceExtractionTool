@@ -52,6 +52,10 @@ function New-Package {
     New-Item -ItemType Directory -Path $nativeFolder -Force | Out-Null
     Move-Item (Join-Path $raw $Executable) (Join-Path $folder $Executable)
 
+    # Startup page background video (App package only): sits next to the exe, ships inside the zip.
+    $video = Join-Path $raw 'load.mp4'
+    if (Test-Path $video) { Move-Item $video (Join-Path $folder 'load.mp4') }
+
     Get-ChildItem $raw -Filter *.dll -File | Move-Item -Destination $nativeFolder
     if (Test-Path (Join-Path $raw "runtimes\$rid")) {
         Get-ChildItem (Join-Path $raw "runtimes\$rid") -File | Move-Item -Destination $nativeFolder

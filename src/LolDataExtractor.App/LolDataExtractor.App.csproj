@@ -17,6 +17,12 @@
     <Resource Include="Assets\logo.ico" />
   </ItemGroup>
 
+  <!-- 开局页的背景视频：仓库根目录的 load.mp4，拷到 exe 旁边；没有这个文件就不放开局页。 -->
+  <ItemGroup Condition="Exists('..\..\load.mp4')">
+    <Content Include="..\..\load.mp4" Link="load.mp4"
+             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
   <!-- Native libraries ship in runtimes\<rid>; this puts that folder on the loader path first. -->
   <ItemGroup>
     <Compile Include="..\LolDataExtractor.Shared\NativeSearchPath.cs" Link="NativeSearchPath.cs" />

@@ -5,8 +5,9 @@ using LolDataExtractor.Core;
 namespace LolDataExtractor.App.ViewModels;
 
 /// <summary>
-/// One row of the classified tree: a category, a hero, a skin, a folder or a file. Children are
-/// built on first expansion — the catalog holds ~900k files and must never build them all.
+/// One row of the classified tree: a section, a group, an entity, a folder or a file. Children are
+/// built on first expansion — the catalog holds hundreds of thousands of files and must never build
+/// them all.
 /// </summary>
 public sealed class CatalogNodeVm : ObservableObject
 {
@@ -21,22 +22,24 @@ public sealed class CatalogNodeVm : ObservableObject
         string countText,
         bool isFolder,
         CatalogEntry? entry,
-        CatalogCategory? category,
-        int hero,
-        int skin,
+        CatalogSection? section,
+        int group,
+        int entity,
         Func<CatalogNodeVm, Task>? expand,
         string? hint = null,
-        string? toolTip = null)
+        string? toolTip = null,
+        string? location = null)
     {
         Name = name;
         CountText = countText;
         IsFolder = isFolder;
         Entry = entry;
-        Category = category;
-        Hero = hero;
-        Skin = skin;
+        Section = section;
+        Group = group;
+        Entity = entity;
         _expand = expand;
         Hint = hint;
+        Location = location;
         ToolTip = toolTip ?? name;
     }
 
@@ -45,10 +48,15 @@ public sealed class CatalogNodeVm : ObservableObject
     /// <summary>Trailing text: file count for a folder, size for a file.</summary>
     public string CountText { get; }
 
-    /// <summary>Small warning next to the name, e.g. "推测" or "目录未识别".</summary>
+    /// <summary>Small badge next to the name; kept for nodes that need to flag themselves.</summary>
     public string? Hint { get; }
 
     public bool HasHint => !string.IsNullOrEmpty(Hint);
+
+    /// <summary>Where a search hit sits: "英雄 · Ahri · Base".</summary>
+    public string? Location { get; }
+
+    public bool HasLocation => !string.IsNullOrEmpty(Location);
 
     public string ToolTip { get; }
 
@@ -57,12 +65,14 @@ public sealed class CatalogNodeVm : ObservableObject
     /// <summary>Set on file rows only.</summary>
     public CatalogEntry? Entry { get; }
 
-    /// <summary>Bucket this node belongs to; <c>null</c> on the "search results" root.</summary>
-    public CatalogCategory? Category { get; }
+    /// <summary>Section this node belongs to; <c>null</c> on the "search results" root.</summary>
+    public CatalogSection? Section { get; }
 
-    public int Hero { get; }
+    /// <summary>Index of the group; -1 when the node covers a whole section.</summary>
+    public int Group { get; }
 
-    public int Skin { get; }
+    /// <summary>Index of the entity; -1 when the node covers a whole group.</summary>
+    public int Entity { get; }
 
     public ObservableCollection<CatalogNodeVm> Children { get; } = new();
 
@@ -104,26 +114,26 @@ public sealed class CatalogNodeVm : ObservableObject
         }
     }
 
-    public static CatalogNodeVm ForCategory(CatalogCategory category, int files, int heroes,
+    public static CatalogNodeVm ForSection(CatalogSectionInfo info, int files, int groups,
         Func<CatalogNodeVm, Task> expand, string description) =>
-        new(CatalogCategoryInfo.Of(category).Display, $"{files:N0} 个文件 · {heroes:N0} 个分组", true, null, category, -1, -1, expand,
+        new(info.Display, $"{files:N0} 个文件 · {groups:N0} 个组", true, null, info.Section, -1, -1, expand,
             toolTip: description);
 
-    public static CatalogNodeVm ForHero(string name, string countText, CatalogCategory category, int hero, bool guessed, bool folder,
-        Func<CatalogNodeVm, Task> expand) =>
-        new(name, countText, true, null, category, hero, -1, expand,
-            hint: guessed ? "推测" : folder ? "目录未识别" : null);
+    public static CatalogNodeVm ForGroup(CatalogSection section, int group, string name, string countText,
+        string? hint, string? detail, Func<CatalogNodeVm, Task> expand) =>
+        new(name, countText, true, null, section, group, -1, expand, hint, detail ?? name);
 
-    public static CatalogNodeVm ForSkin(string name, string countText, CatalogCategory category, int hero, int skin,
-        Func<CatalogNodeVm, Task> expand) =>
-        new(name, countText, true, null, category, hero, skin, expand);
+    public static CatalogNodeVm ForEntity(CatalogSection section, int group, int entity, string name,
+        string countText, string? detail, Func<CatalogNodeVm, Task> expand) =>
+        new(name, countText, true, null, section, group, entity, expand, null, detail ?? name);
 
     public static CatalogNodeVm ForFolder(string name, string countText, Func<CatalogNodeVm, Task> expand) =>
         new(name, countText, true, null, null, -1, -1, expand);
 
-    public static CatalogNodeVm ForFile(CatalogEntry entry) =>
+    public static CatalogNodeVm ForFile(CatalogEntry entry, string? location = null) =>
         new(entry.FileName, ExtractionSummary.Format(entry.Size), false, entry, null, -1, -1, null,
-            toolTip: entry.Path + (entry.WadCount > 1 ? $"\n（{entry.WadCount} 个 wad 含此条目，打开的是 {Path.GetFileName(entry.WadPath)}）" : string.Empty));
+            toolTip: entry.Path + (entry.WadCount > 1 ? $"\n（{entry.WadCount} 个 wad 含此条目，打开的是 {Path.GetFileName(entry.WadPath)}）" : string.Empty),
+            location: location);
 
     /// <summary>A plain message row (nothing to show, a truncated list, a search hint).</summary>
     public static CatalogNodeVm Message(string text) =>

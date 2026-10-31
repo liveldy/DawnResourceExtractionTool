@@ -8,6 +8,7 @@ using System.Windows.Input;
 using ICSharpCode.AvalonEdit.Highlighting;
 using ICSharpCode.AvalonEdit.Highlighting.Xshd;
 using ICSharpCode.AvalonEdit.Search;
+using LolDataExtractor.App.Services;
 
 namespace LolDataExtractor.App.Controls;
 
@@ -26,11 +27,31 @@ public partial class JsonViewer : UserControl
     public JsonViewer()
     {
         InitializeComponent();
-        Editor.SyntaxHighlighting = LoadHighlighting();
+        Editor.SyntaxHighlighting = LoadHighlighting(IsDarkTheme());
+        ApplyTextColors();
         SearchPanel.Install(Editor.TextArea);
         Editor.TextArea.TextView.MouseLeftButtonUp += OnMouseLeftButtonUp;
         Editor.TextArea.TextView.MouseMove += OnMouseMove;
+        Loaded += (_, _) => ThemeService.Changed += OnThemeChanged;
+        Unloaded += (_, _) => ThemeService.Changed -= OnThemeChanged;
     }
+
+    /// <summary>The syntax colours follow the window: light text on dark for the dark theme.</summary>
+    private void OnThemeChanged()
+    {
+        Editor.SyntaxHighlighting = LoadHighlighting(IsDarkTheme());
+        ApplyTextColors();
+    }
+
+    /// <summary>AvalonEdit does not read the palette itself, so the text colour is handed over here.</summary>
+    private void ApplyTextColors()
+    {
+        if (TryFindResource("BodyTextBrush") is not System.Windows.Media.Brush brush) return;
+        Editor.Foreground = brush;
+        Editor.TextArea.Foreground = brush;
+    }
+
+    private static bool IsDarkTheme() => ThemeService.Effective(ThemeService.Current) == AppTheme.Dark;
 
     /// <summary>Raised with the raw asset reference when a path in the text is clicked.</summary>
     public event EventHandler<string>? LinkActivated;
@@ -146,14 +167,18 @@ public partial class JsonViewer : UserControl
     /// JSON highlighting with a colour of its own for keys. The built-in definition paints keys and
     /// values the same, which makes a 200k line table unreadable.
     /// </summary>
-    private static IHighlightingDefinition LoadHighlighting()
+    private static IHighlightingDefinition LoadHighlighting(bool dark)
     {
-        const string xshd = """
+        var (key, text, number, literal) = dark
+            ? ("#9CC7FF", "#F08A8A", "#7FD1A6", "#C7A9F5")
+            : ("#0451A5", "#B31D28", "#098658", "#8250DF");
+
+        var xshd = $$"""
             <SyntaxDefinition name="JsonSource" extensions=".json" xmlns="http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008">
-              <Color name="Key" foreground="#0451A5" fontWeight="bold" />
-              <Color name="String" foreground="#B31D28" />
-              <Color name="Number" foreground="#098658" />
-              <Color name="Literal" foreground="#8250DF" />
+              <Color name="Key" foreground="{{key}}" fontWeight="bold" />
+              <Color name="String" foreground="{{text}}" />
+              <Color name="Number" foreground="{{number}}" />
+              <Color name="Literal" foreground="{{literal}}" />
               <RuleSet>
                 <Rule color="Key">"([^"\\]|\\.)*"\s*:</Rule>
                 <Span color="String" begin="&quot;" end="&quot;" />

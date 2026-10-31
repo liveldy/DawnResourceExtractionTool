@@ -67,6 +67,13 @@ public partial class ModelPreviewView : UserControl
     private static void OnModelChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
         var view = (ModelPreviewView)d;
+
+        // A Model3D is a Freezable: posing it (MeshGeometry3D.Positions and .Normals are rewritten
+        // on every animation frame) raises this callback again with the very same instance. Only a
+        // new model should re-frame the camera, otherwise the view snaps back 30 times a second and
+        // the user cannot orbit the model while the animation runs.
+        if (ReferenceEquals(e.OldValue, e.NewValue)) return;
+
         view.Visual.Content = e.NewValue as Model3D;
         view.Hint.Visibility = e.NewValue is null ? Visibility.Visible : Visibility.Collapsed;
         view.ResetViewButton.Visibility = e.NewValue is null ? Visibility.Collapsed : Visibility.Visible;

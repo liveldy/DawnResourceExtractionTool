@@ -20,6 +20,9 @@ public sealed class AppSettings
     /// <summary>Folder holding the downloaded hash tables and the generated name index.</summary>
     public string DataDirectory { get; set; } = DefaultDataDirectory();
 
+    /// <summary>UI colours: <c>Dark</c> (the default), <c>Light</c> or <c>System</c>.</summary>
+    public string Theme { get; set; } = "Dark";
+
     public static string DefaultDataDirectory()
         => Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),

@@ -14,5 +14,8 @@ data/
 # large local fixtures (game assets stay out of the repository)
 tests/testdata/*.wad.client
 
+# 开局页的背景视频：放在仓库根目录，构建时拷到 exe 旁边，不进版本库
+load.mp4
+
 # self check artefacts written next to screenshots
 *.log

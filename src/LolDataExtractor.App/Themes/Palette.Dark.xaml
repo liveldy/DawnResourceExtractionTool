@@ -1,0 +1,67 @@
+<!--
+    黑夜配色（默认）。键与 Palette.Light.xaml 一一对应，两个文件必须同时增删——
+    少一个键，切到那一侧时控件就会用回 HandyControl 自带的值。
+    底色按纯黑来，文字一律浅色：这一侧不应出现任何深色文字。
+-->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- 底色与面板 -->
+    <SolidColorBrush x:Key="WindowBackground" Color="#000000" />
+    <SolidColorBrush x:Key="PanelBackground" Color="#0A0A0A" />
+    <SolidColorBrush x:Key="PanelBorder" Color="#1F1F1F" />
+    <SolidColorBrush x:Key="HeaderBackground" Color="#101010" />
+    <SolidColorBrush x:Key="SubtleBackground" Color="#050505" />
+
+    <!-- 文字：全部浅色，纯白为主 -->
+    <SolidColorBrush x:Key="AccentBrush" Color="#5B8DEF" />
+    <SolidColorBrush x:Key="StrongTextBrush" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="BodyTextBrush" Color="#F5F5F5" />
+    <SolidColorBrush x:Key="SecondaryTextBrush" Color="#E6E6E6" />
+    <SolidColorBrush x:Key="TertiaryTextBrush" Color="#D2D2D2" />
+    <SolidColorBrush x:Key="MutedBrush" Color="#B8B8B8" />
+    <SolidColorBrush x:Key="PlaceholderBrush" Color="#8A8A8A" />
+
+    <!-- 输入框与进度条 -->
+    <SolidColorBrush x:Key="FieldBackground" Color="#0D0D0D" />
+    <SolidColorBrush x:Key="FieldBorder" Color="#2A2A2A" />
+    <SolidColorBrush x:Key="ProgressTrack" Color="#1E1E1E" />
+
+    <!-- 提示与警告 -->
+    <SolidColorBrush x:Key="HintBackground" Color="#2A2312" />
+    <SolidColorBrush x:Key="WarningBackground" Color="#221C10" />
+    <SolidColorBrush x:Key="WarningBorder" Color="#3D3018" />
+    <SolidColorBrush x:Key="WarningText" Color="#F0BE6B" />
+    <SolidColorBrush x:Key="WarningStrongText" Color="#F5CE86" />
+
+    <!-- 3D 预览 -->
+    <SolidColorBrush x:Key="ViewportBackground" Color="#000000" />
+    <SolidColorBrush x:Key="ViewportOverlay" Color="#141414" />
+    <SolidColorBrush x:Key="ViewportBorder" Color="#2A2A2A" />
+
+    <!-- 关于弹层的遮罩 -->
+    <SolidColorBrush x:Key="OverlayBrush" Color="#99000000" />
+
+    <!-- 栏与栏之间的拖动条：平时看不见，按住才亮起来提示位置 -->
+    <SolidColorBrush x:Key="SplitterBrush" Color="Transparent" />
+    <SolidColorBrush x:Key="SplitterHoverBrush" Color="#26303F" />
+
+    <!-- HandyControl 控件用的键 -->
+    <SolidColorBrush x:Key="RegionBrush" Color="#0A0A0A" />
+    <SolidColorBrush x:Key="BackgroundBrush" Color="#0A0A0A" />
+    <SolidColorBrush x:Key="DefaultBrush" Color="#171717" />
+    <!-- 选中行的底色（HandyControl 的 TreeViewItem 选中态用它），默认是 #686868 的中灰 -->
+    <SolidColorBrush x:Key="DarkDefaultBrush" Color="#263445" />
+    <SolidColorBrush x:Key="SecondaryRegionBrush" Color="#121212" />
+    <SolidColorBrush x:Key="ThirdlyRegionBrush" Color="#1C1C1C" />
+    <SolidColorBrush x:Key="BorderBrush" Color="#2A2A2A" />
+    <SolidColorBrush x:Key="SecondaryBorderBrush" Color="#1F1F1F" />
+    <SolidColorBrush x:Key="PrimaryTextBrush" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="ThirdlyTextBrush" Color="#D2D2D2" />
+    <SolidColorBrush x:Key="TitleBrush" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="TextIconBrush" Color="#F0F0F0" />
+    <SolidColorBrush x:Key="ReverseTextBrush" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="PrimaryBrush" Color="#5B8DEF" />
+    <SolidColorBrush x:Key="DarkPrimaryBrush" Color="#3D74D8" />
+    <SolidColorBrush x:Key="LightPrimaryBrush" Color="#1E2A3D" />
+</ResourceDictionary>

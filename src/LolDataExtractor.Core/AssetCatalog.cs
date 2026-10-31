@@ -2,95 +2,135 @@ using System.Text;
 
 namespace LolDataExtractor.Core;
 
-/// <summary>The buckets the asset catalog groups entries into.</summary>
-public enum CatalogCategory : byte
+/// <summary>The sections the catalog groups entries into, in the order the tree shows them.</summary>
+public enum CatalogSection : byte
 {
-    /// <summary>Nothing matched; the bucket is always shown last and never hidden.</summary>
-    Unclassified = 0,
-    HeroAsset = 1,
-    HeroImage = 2,
-    HeroAudio = 3,
-    HeroConfig = 4,
-    Map = 5,
-    Interface = 6,
-    Item = 7,
-    Shared = 8,
+    Champion = 0,
+    Skin = 1,
+    Item = 2,
+    Perk = 3,
+    Regalia = 4,
+    Emote = 5,
+    Icon = 6,
+    SummonerSpell = 7,
+    Ward = 8,
 }
 
-/// <summary>Display and export names of one category.</summary>
-public sealed record CatalogCategoryInfo(CatalogCategory Category, string Display, string Folder, string Description)
+/// <summary>Display and export names of one section.</summary>
+public sealed record CatalogSectionInfo(CatalogSection Section, string Display, string Folder, string Description)
 {
-    /// <summary>Category keys in the order the tree shows them; unclassified is always last.</summary>
-    public static IReadOnlyList<CatalogCategoryInfo> All { get; } = new[]
+    public static IReadOnlyList<CatalogSectionInfo> All { get; } = new[]
     {
-        new CatalogCategoryInfo(CatalogCategory.HeroAsset, "英雄资源", "英雄资源", "模型、贴图、特效与动画"),
-        new CatalogCategoryInfo(CatalogCategory.HeroImage, "英雄图像", "英雄图像", "原画、载入图、图标与 HUD，含相关 json"),
-        new CatalogCategoryInfo(CatalogCategory.HeroAudio, "英雄音频", "英雄音频", "语音与技能音效"),
-        new CatalogCategoryInfo(CatalogCategory.HeroConfig, "英雄配置", "英雄配置", "英雄数据与客户端 json"),
-        new CatalogCategoryInfo(CatalogCategory.Map, "地图", "地图", "召唤师峡谷、嚎哭深渊与 TFT 棋盘"),
-        new CatalogCategoryInfo(CatalogCategory.Interface, "界面与数据", "界面与数据", "客户端界面、活动与全局数据表"),
-        new CatalogCategoryInfo(CatalogCategory.Item, "物品与装备", "物品与装备", "装备、消耗品与掉落图标"),
-        new CatalogCategoryInfo(CatalogCategory.Shared, "共享资源", "共享资源", "多个英雄与地图共用的材质、特效与音效"),
-        new CatalogCategoryInfo(CatalogCategory.Unclassified, "未分类", "未分类", "自动规则认不出来的条目"),
+        new CatalogSectionInfo(CatalogSection.Champion, "英雄", "英雄", "模型、贴图、动画、数据与语音"),
+        new CatalogSectionInfo(CatalogSection.Skin, "皮肤", "皮肤", "原画、载入图、炫彩与系列"),
+        new CatalogSectionInfo(CatalogSection.Item, "装备", "装备", "图标、属性与脚本数据"),
+        new CatalogSectionInfo(CatalogSection.Perk, "符文", "符文", "符文与符文系图标"),
+        new CatalogSectionInfo(CatalogSection.Regalia, "旗帜", "旗帜", "横幅与旗帜"),
+        new CatalogSectionInfo(CatalogSection.Emote, "表情", "表情", "表情图标与套组"),
+        new CatalogSectionInfo(CatalogSection.Icon, "图标", "图标", "召唤师图标与套组"),
+        new CatalogSectionInfo(CatalogSection.SummonerSpell, "召唤师技能", "召唤师技能", "技能图标与数据"),
+        new CatalogSectionInfo(CatalogSection.Ward, "守卫", "守卫", "守卫皮肤图标"),
     };
 
-    private static readonly Dictionary<string, CatalogCategory> ByKey = BuildKeys();
+    private static readonly Dictionary<string, CatalogSection> ByKey = BuildKeys();
 
-    private static Dictionary<string, CatalogCategory> BuildKeys()
+    private static Dictionary<string, CatalogSection> BuildKeys()
     {
-        var map = new Dictionary<string, CatalogCategory>(StringComparer.OrdinalIgnoreCase);
+        var map = new Dictionary<string, CatalogSection>(StringComparer.OrdinalIgnoreCase);
         foreach (var info in All)
         {
-            map[info.Category.ToString()] = info.Category;
-            map[info.Display] = info.Category;
-            map[info.Folder] = info.Category;
+            map[info.Section.ToString()] = info.Section;
+            map[info.Display] = info.Section;
+            map[info.Folder] = info.Section;
         }
 
         return map;
     }
 
-    public static CatalogCategoryInfo Of(CatalogCategory category)
-        => All.FirstOrDefault(info => info.Category == category) ?? All[^1];
+    public static CatalogSectionInfo Of(CatalogSection section)
+        => All.FirstOrDefault(info => info.Section == section) ?? All[0];
 
     /// <summary>Parses an override value: the enum name or the Chinese label.</summary>
-    public static bool TryParse(string? text, out CatalogCategory category)
+    public static bool TryParse(string? text, out CatalogSection section)
     {
-        category = CatalogCategory.Unclassified;
-        return !string.IsNullOrWhiteSpace(text) && ByKey.TryGetValue(text.Trim(), out category);
+        section = CatalogSection.Champion;
+        return !string.IsNullOrWhiteSpace(text) && ByKey.TryGetValue(text.Trim(), out section);
     }
 }
 
-/// <summary>How sure the catalog is about a hero group.</summary>
-public enum CatalogHeroKind : byte
+/// <summary>A second level node: a champion, a skin series, an item category, an icon set, …</summary>
+public sealed class CatalogGroup
 {
-    /// <summary>The folder is the champion's alias exactly.</summary>
-    Champion = 0,
+    internal CatalogGroup(CatalogSection section, string label, string folder, string? detail, byte rank)
+    {
+        Section = section;
+        Label = label;
+        Folder = folder;
+        Detail = detail;
+        Rank = rank;
+    }
 
-    /// <summary>A loose rule matched, e.g. "zedshadow" or "cherry_goh_kindred".</summary>
-    Guessed = 1,
+    public CatalogSection Section { get; }
 
-    /// <summary>No champion matched; the folder name itself is the group.</summary>
-    Folder = 2,
+    public string Label { get; }
+
+    /// <summary>Folder name used when this group is exported.</summary>
+    public string Folder { get; }
+
+    /// <summary>Extra text shown as a tool tip: the champion description, the series description, …</summary>
+    public string? Detail { get; }
+
+    /// <summary>0 for what the client tables name, 1 for the rest (variants, "Other").</summary>
+    public byte Rank { get; }
+
+    public int Start { get; internal set; }
+
+    public int Count { get; internal set; }
 }
 
-/// <summary>A second level node of the catalog: a champion, or a folder that is not one.</summary>
-public sealed record CatalogHero(string Label, string Folder, int ChampionId, CatalogHeroKind Kind)
+/// <summary>A third level node: one skin, one item, one perk, one icon, …</summary>
+public sealed class CatalogEntity
 {
-    /// <summary>True when the group is a guess or a plain folder; the tree shows a hint.</summary>
-    public bool IsGuessed => Kind != CatalogHeroKind.Champion;
-}
+    internal CatalogEntity(int group, string label, string folder, string? detail, int rank)
+    {
+        Group = group;
+        Label = label;
+        Folder = folder;
+        Detail = detail;
+        Rank = rank;
+    }
 
-/// <summary>A third level node: one skin of a champion, or a sub folder.</summary>
-public sealed record CatalogSkinLabel(string Label, string Folder, int SkinId, int ChampionId, bool IsKnown);
+    public int Group { get; }
+
+    public string Label { get; }
+
+    /// <summary>Folder name used when this entity is exported.</summary>
+    public string Folder { get; }
+
+    public string? Detail { get; }
+
+    /// <summary>Sort key inside its group: the skin number, a fixed slot for the special nodes.</summary>
+    public int Rank { get; }
+
+    /// <summary>
+    /// Longest folder prefix every file of this entity shares; an entry's path is shown and exported
+    /// after it. Computed once when the catalog is built.
+    /// </summary>
+    public string Anchor { get; internal set; } = string.Empty;
+
+    public int Start { get; internal set; }
+
+    public int Count { get; internal set; }
+}
 
 /// <summary>One entry of the catalog, ready to be shown, opened or exported.</summary>
 public sealed record CatalogEntry(
     ulong Hash,
     string Path,
     string WadPath,
-    CatalogCategory Category,
-    int Hero,
-    int Skin,
+    CatalogSection Section,
+    int Group,
+    int Entity,
     long Size,
     int WadCount)
 {
@@ -114,19 +154,16 @@ public sealed record CatalogEntry(
     }
 }
 
-/// <summary>A contiguous run of entries: one category + hero + skin.</summary>
-public sealed record CatalogGroup(int Category, int Hero, int Skin, int Start, int Count)
-{
-    public CatalogCategory Bucket => (CatalogCategory)Category;
-}
-
 /// <summary>Result of one search over the catalog.</summary>
 public sealed record CatalogSearchResult(IReadOnlyList<CatalogEntry> Entries, int Total, bool Truncated);
 
+/// <summary>Where one entry sits in the tree: a group and an entity of <see cref="CatalogNodes"/>.</summary>
+internal readonly record struct CatalogPlacement(int Group, int Entity);
+
 /// <summary>
-/// The classified view of every asset in the game and client archives: category → hero → skin →
-/// file. Rows live in flat arrays (hash, name index, category, hero, skin, wad) so the whole table
-/// fits in a few dozen megabytes; paths are decoded from the name index on demand.
+/// The classified view of every asset in the game and client archives: section → group → entity →
+/// file. Rows live in flat arrays (hash, name index, group, entity, wad) so the whole table fits in
+/// a few dozen megabytes; paths are decoded from the name index on demand.
 /// </summary>
 public sealed class AssetCatalog
 {
@@ -136,16 +173,14 @@ public sealed class AssetCatalog
     private readonly ulong[] _hash;
     private readonly int[] _nameIndex;
     private readonly int[] _size;
-    private readonly ushort[] _hero;
-    private readonly ushort[] _skin;
-    private readonly byte[] _category;
+    private readonly ushort[] _group;
+    private readonly ushort[] _entity;
     private readonly ushort[] _wad;
     private readonly byte[] _wadCount;
 
     private readonly IReadOnlyList<string> _wadPaths;
-    private readonly IReadOnlyList<CatalogHero> _heroes;
-    private readonly IReadOnlyList<CatalogSkinLabel> _skins;
     private readonly IReadOnlyList<CatalogGroup> _groups;
+    private readonly IReadOnlyList<CatalogEntity> _entities;
     private readonly int[] _sorted;
 
     private AssetCatalog(
@@ -153,15 +188,13 @@ public sealed class AssetCatalog
         ulong[] hash,
         int[] nameIndex,
         int[] size,
-        ushort[] hero,
-        ushort[] skin,
-        byte[] category,
+        ushort[] group,
+        ushort[] entity,
         ushort[] wad,
         byte[] wadCount,
         IReadOnlyList<string> wadPaths,
-        IReadOnlyList<CatalogHero> heroes,
-        IReadOnlyList<CatalogSkinLabel> skins,
         IReadOnlyList<CatalogGroup> groups,
+        IReadOnlyList<CatalogEntity> entities,
         int[] sorted,
         CatalogTables tables,
         CatalogOverrides overrides)
@@ -170,15 +203,13 @@ public sealed class AssetCatalog
         _hash = hash;
         _nameIndex = nameIndex;
         _size = size;
-        _hero = hero;
-        _skin = skin;
-        _category = category;
+        _group = group;
+        _entity = entity;
         _wad = wad;
         _wadCount = wadCount;
         _wadPaths = wadPaths;
-        _heroes = heroes;
-        _skins = skins;
         _groups = groups;
+        _entities = entities;
         _sorted = sorted;
         Tables = tables;
         Overrides = overrides;
@@ -186,9 +217,8 @@ public sealed class AssetCatalog
 
     public static AssetCatalog Empty { get; } = new(
         NameTable.Empty, Array.Empty<ulong>(), Array.Empty<int>(), Array.Empty<int>(),
-        Array.Empty<ushort>(), Array.Empty<ushort>(), Array.Empty<byte>(),
-        Array.Empty<ushort>(), Array.Empty<byte>(), Array.Empty<string>(),
-        Array.Empty<CatalogHero>(), Array.Empty<CatalogSkinLabel>(), Array.Empty<CatalogGroup>(),
+        Array.Empty<ushort>(), Array.Empty<ushort>(), Array.Empty<ushort>(), Array.Empty<byte>(),
+        Array.Empty<string>(), Array.Empty<CatalogGroup>(), Array.Empty<CatalogEntity>(),
         Array.Empty<int>(), CatalogTables.Empty, CatalogOverrides.Load(null));
 
     public CatalogTables Tables { get; }
@@ -197,18 +227,16 @@ public sealed class AssetCatalog
 
     public int Count => _hash.Length;
 
-    public IReadOnlyList<CatalogHero> Heroes => _heroes;
-
-    public IReadOnlyList<CatalogSkinLabel> Skins => _skins;
-
     public IReadOnlyList<CatalogGroup> Groups => _groups;
 
-    /// <summary>Number of entries in one bucket.</summary>
-    public int CountOf(CatalogCategory category)
+    public IReadOnlyList<CatalogEntity> Entities => _entities;
+
+    /// <summary>Number of entries in one section.</summary>
+    public int CountOf(CatalogSection section)
     {
         var total = 0;
         foreach (var group in _groups)
-            if (group.Category == (int)category) total += group.Count;
+            if (group.Section == section) total += group.Count;
         return total;
     }
 
@@ -218,33 +246,53 @@ public sealed class AssetCatalog
         _hash[row],
         PathOf(row),
         _wadPaths[_wad[row]],
-        (CatalogCategory)_category[row],
-        _hero[row],
-        _skin[row],
+        _groups[_group[row]].Section,
+        _group[row],
+        _entity[row],
         _size[row],
         _wadCount[row]);
 
     /// <summary>Row of a hash, or -1; rows are kept in hash order.</summary>
     public int IndexOf(ulong hash) => Array.BinarySearch(_hash, hash);
 
-    /// <summary>Entries of one group, sorted by path.</summary>
-    public IReadOnlyList<CatalogEntry> EntriesOf(CatalogGroup group)
+    /// <summary>
+    /// Entries of one group, or of one entity when <paramref name="entity"/> is given, sorted by path.
+    /// </summary>
+    public IReadOnlyList<CatalogEntry> EntriesOf(int group, int entity = -1)
     {
-        var entries = new List<CatalogEntry>(group.Count);
-        for (var i = group.Start; i < group.Start + group.Count; i++) entries.Add(EntryOf(_sorted[i]));
+        if (group < 0 || group >= _groups.Count) return Array.Empty<CatalogEntry>();
+
+        int start;
+        int count;
+        if (entity >= 0)
+        {
+            if (entity >= _entities.Count) return Array.Empty<CatalogEntry>();
+            var item = _entities[entity];
+            if (item.Group != group) return Array.Empty<CatalogEntry>();
+            start = item.Start;
+            count = item.Count;
+        }
+        else
+        {
+            var item = _groups[group];
+            start = item.Start;
+            count = item.Count;
+        }
+
+        if (count == 0) return Array.Empty<CatalogEntry>();
+        var entries = new List<CatalogEntry>(count);
+        for (var i = start; i < start + count; i++) entries.Add(EntryOf(_sorted[i]));
         entries.Sort(static (a, b) => string.Compare(a.Path, b.Path, StringComparison.OrdinalIgnoreCase));
         return entries;
     }
 
-    /// <summary>Entries of a bucket, optionally narrowed to one hero and one skin.</summary>
-    public IReadOnlyList<CatalogEntry> EntriesOf(CatalogCategory category, int hero = -1, int skin = -1)
+    /// <summary>Entries of a whole section.</summary>
+    public IReadOnlyList<CatalogEntry> EntriesOf(CatalogSection section)
     {
         var entries = new List<CatalogEntry>();
         foreach (var group in _groups)
         {
-            if (group.Category != (int)category) continue;
-            if (hero >= 0 && group.Hero != hero) continue;
-            if (skin >= 0 && group.Skin != skin) continue;
+            if (group.Section != section) continue;
             for (var i = group.Start; i < group.Start + group.Count; i++) entries.Add(EntryOf(_sorted[i]));
         }
 
@@ -252,9 +300,13 @@ public sealed class AssetCatalog
         return entries;
     }
 
-    /// <summary>Groups of a bucket in their natural order.</summary>
-    public IReadOnlyList<CatalogGroup> GroupsOf(CatalogCategory category)
-        => _groups.Where(group => group.Category == (int)category).ToList();
+    /// <summary>Groups of a section that actually hold files.</summary>
+    public IReadOnlyList<CatalogGroup> GroupsOf(CatalogSection section)
+        => _groups.Where(group => group.Section == section && group.Count > 0).ToList();
+
+    /// <summary>Entities of a group that actually hold files.</summary>
+    public IReadOnlyList<CatalogEntity> EntitiesOf(int group)
+        => _entities.Where(entity => entity.Group == group && entity.Count > 0).ToList();
 
     /// <summary>Substring search over every path; <paramref name="limit"/> caps the rows returned.</summary>
     public CatalogSearchResult Search(string text, int limit = 20000)
@@ -363,7 +415,8 @@ public sealed class AssetCatalog
     /// <summary>
     /// Scans every wad, resolves each entry's path through <paramref name="names"/>, classifies it and
     /// returns the catalog. An entry that appears in more than one wad is kept once, pointing at the
-    /// copy whose wad language matches the path, then at the one without a language suffix.
+    /// copy whose wad language matches the path, then at the one without a language suffix. Entries
+    /// no section claims are left out: the tree has no "unclassified" bucket.
     /// </summary>
     public static AssetCatalog Build(
         IReadOnlyList<WadSummary> wads,
@@ -377,6 +430,7 @@ public sealed class AssetCatalog
         ArgumentNullException.ThrowIfNull(names);
 
         overrides ??= CatalogOverrides.Load(null);
+        tables ??= CatalogTables.Empty;
         var wadPaths = wads.Select(wad => wad.FullPath).ToArray();
 
         // 1. Every (hash, wad, size) triple.
@@ -411,16 +465,18 @@ public sealed class AssetCatalog
         Array.Sort(copies, 0, total);
         log?.Report($"{total:N0} 个 wad 条目，去重中…");
 
-        // 2. One row per hash, pointing at the copy to keep.
-        var classifier = new CatalogClassifier(tables ?? CatalogTables.Empty, overrides);
+        // 2. The tables say which file belongs where; the path rules fill the gaps.
+        var nodes = new CatalogNodes();
+        var classifier = new CatalogClassifier(tables, overrides, nodes);
+        var references = tables.BuildReferenceIndex(nodes, log);
+
         var rowHash = new ulong[total];
         var rowName = new int[total];
         var rowSize = new int[total];
         var rowWad = new ushort[total];
         var rowWadCount = new byte[total];
-        var rowHero = new ushort[total];
-        var rowSkin = new ushort[total];
-        var rowCategory = new byte[total];
+        var rowGroup = new ushort[total];
+        var rowEntity = new ushort[total];
         var rows = 0;
 
         var i2 = 0;
@@ -438,18 +494,22 @@ public sealed class AssetCatalog
             }
 
             var nameIndex = names.IndexOf(hash);
-            var path = nameIndex >= 0 ? names.PathAt(nameIndex) : string.Empty;
-            if (classifier.Classify(path, hash, out var category, out var hero, out var skin))
+            if (nameIndex >= 0)
             {
-                rowHash[rows] = hash;
-                rowName[rows] = nameIndex;
-                rowSize[rows] = copies[best].Size;
-                rowWad[rows] = copies[best].Wad;
-                rowWadCount[rows] = (byte)Math.Min(count, byte.MaxValue);
-                rowHero[rows] = hero;
-                rowSkin[rows] = skin;
-                rowCategory[rows] = (byte)category;
-                rows++;
+                var path = names.PathAt(nameIndex);
+                var placement = default(CatalogPlacement);
+                var assigned = references.TryGetValue(hash, out placement) || classifier.TryAssign(path, out placement);
+                if (assigned && classifier.Apply(hash, path, ref placement))
+                {
+                    rowHash[rows] = hash;
+                    rowName[rows] = nameIndex;
+                    rowSize[rows] = copies[best].Size;
+                    rowWad[rows] = copies[best].Wad;
+                    rowWadCount[rows] = (byte)Math.Min(count, byte.MaxValue);
+                    rowGroup[rows] = (ushort)placement.Group;
+                    rowEntity[rows] = (ushort)placement.Entity;
+                    rows++;
+                }
             }
 
             i2 += count;
@@ -460,38 +520,105 @@ public sealed class AssetCatalog
         Array.Resize(ref rowSize, rows);
         Array.Resize(ref rowWad, rows);
         Array.Resize(ref rowWadCount, rows);
-        Array.Resize(ref rowHero, rows);
-        Array.Resize(ref rowSkin, rows);
-        Array.Resize(ref rowCategory, rows);
-        log?.Report($"{rows:N0} 个条目已分类，整理分组…");
+        Array.Resize(ref rowGroup, rows);
+        Array.Resize(ref rowEntity, rows);
+        log?.Report($"{rows:N0} 个条目属于分类，整理分组…");
 
-        // 3. Tree order: category, hero, skin.
+        // 3. Tree order: group, then entity.
         var keys = new long[rows];
         var sorted = new int[rows];
         for (var r = 0; r < rows; r++)
         {
-            keys[r] = ((long)rowCategory[r] << 40) | ((long)rowHero[r] << 20) | rowSkin[r];
+            keys[r] = ((long)rowGroup[r] << 16) | rowEntity[r];
             sorted[r] = r;
         }
 
         Array.Sort(keys, sorted);
 
-        var groups = new List<CatalogGroup>();
-        var start = 0;
-        for (var r = 1; r <= rows; r++)
+        // 4. Row ranges per group and entity, and the folder prefix each entity's files share.
+        var groupStart = new int[nodes.Groups.Count];
+        var groupCount = new int[nodes.Groups.Count];
+        var entityStart = new int[nodes.Entities.Count];
+        var entityCount = new int[nodes.Entities.Count];
+        var entityAnchor = new string[nodes.Entities.Count];
+
+        var i3 = 0;
+        while (i3 < rows)
         {
-            if (r < rows && keys[r] == keys[start]) continue;
-            var row = sorted[start];
-            groups.Add(new CatalogGroup(rowCategory[row], rowHero[row], rowSkin[row], start, r - start));
-            start = r;
+            var group = rowGroup[sorted[i3]];
+            var first = i3;
+            while (i3 < rows && rowGroup[sorted[i3]] == group)
+            {
+                var entity = rowEntity[sorted[i3]];
+                var start = i3;
+                while (i3 < rows && rowGroup[sorted[i3]] == group && rowEntity[sorted[i3]] == entity) i3++;
+
+                entityStart[entity] = start;
+                entityCount[entity] = i3 - start;
+                entityAnchor[entity] = CommonAnchor(names, rowName, sorted, start, i3);
+            }
+
+            groupStart[group] = first;
+            groupCount[group] = i3 - first;
         }
 
-        log?.Report($"分组完成：{rows:N0} 个条目 / {groups.Count:N0} 个分组 / {classifier.Heroes.Count:N0} 个英雄节点");
+        for (var g = 0; g < groupStart.Length; g++)
+        {
+            nodes.Groups[g].Start = groupStart[g];
+            nodes.Groups[g].Count = groupCount[g];
+        }
+
+        for (var e = 0; e < entityStart.Length; e++)
+        {
+            nodes.Entities[e].Start = entityStart[e];
+            nodes.Entities[e].Count = entityCount[e];
+            nodes.Entities[e].Anchor = entityAnchor[e] ?? string.Empty;
+        }
+
+        log?.Report($"分组完成：{rows:N0} 个条目 / {nodes.Groups.Count:N0} 个组 / {nodes.Entities.Count:N0} 个条目节点");
         return new AssetCatalog(
-            names, rowHash, rowName, rowSize, rowHero, rowSkin, rowCategory, rowWad, rowWadCount,
-            wadPaths, classifier.Heroes, classifier.Skins, groups, sorted,
-            classifier.Tables, overrides);
+            names, rowHash, rowName, rowSize, rowGroup, rowEntity, rowWad, rowWadCount,
+            wadPaths, nodes.Groups, nodes.Entities, sorted,
+            tables, overrides);
     }
+
+    /// <summary>
+    /// Longest folder prefix shared by a run of rows, ending with a slash; empty when none. Rows are
+    /// positions in <paramref name="sorted"/>, so a path is decoded through
+    /// <paramref name="nameIndex"/> — the row itself is not a name index.
+    /// </summary>
+    private static string CommonAnchor(NameTable names, int[] nameIndex, int[] sorted, int start, int end)
+    {
+        if (start >= end) return string.Empty;
+
+        var first = RowPath(names, nameIndex, sorted[start]);
+        if (first.Length == 0) return string.Empty;
+        var slash = first.LastIndexOf('/');
+        if (slash <= 0) return string.Empty;
+        var anchor = first[..(slash + 1)];
+
+        for (var i = start + 1; i < end && anchor.Length > 0; i++)
+        {
+            var other = RowPath(names, nameIndex, sorted[i]);
+            var length = 0;
+            var limit = Math.Min(anchor.Length, other.Length);
+            while (length < limit && char.ToLowerInvariant(anchor[length]) == char.ToLowerInvariant(other[length])) length++;
+            if (length < anchor.Length)
+            {
+                // Cut back to the last folder boundary before the difference.
+                var boundary = anchor.LastIndexOf('/', Math.Max(0, length - 1));
+                anchor = boundary < 0 ? string.Empty : anchor[..(boundary + 1)];
+            }
+        }
+
+        return anchor.Length > 1 ? anchor : string.Empty;
+    }
+
+    /// <summary>Path of one row, without the client plugin prefix and with forward slashes.</summary>
+    private static string RowPath(NameTable names, int[] nameIndex, int row)
+        => nameIndex[row] >= 0
+            ? CatalogPaths.StripPluginPrefix(names.PathAt(nameIndex[row])).Replace('\\', '/')
+            : string.Empty;
 
     /// <summary>
     /// True when the candidate copy should replace the current one: the wad whose language matches
@@ -519,7 +646,7 @@ public sealed class AssetCatalog
     }
 }
 
-/// <summary>Path helpers shared by the catalog and the classifier.</summary>
+/// <summary>Path helpers shared by the catalog, the tables and the classifier.</summary>
 public static class CatalogPaths
 {
     /// <summary>Client plugin path prefix, dropped when comparing or exporting.</summary>
@@ -551,29 +678,14 @@ public static class CatalogPaths
     }
 
     /// <summary>
-    /// Path of one entry inside its catalog folder: the plugin prefix and the champion/skin anchor
-    /// are cut off so the tree stays readable, and whatever is left keeps its own structure.
+    /// Path of one entry below its entity: the plugin prefix and the folder prefix every file of the
+    /// entity shares are cut off, and whatever is left keeps its own structure.
     /// </summary>
-    public static string RelativeOf(string path, string championFolder, string skinFolder)
+    public static string RelativeOf(string path, string anchor)
     {
         var rest = StripPluginPrefix(path).Replace('\\', '/').TrimStart('/');
-
-        if (championFolder.Length > 0)
-        {
-            var anchor = "characters/" + championFolder + "/";
-            var index = rest.IndexOf(anchor, StringComparison.OrdinalIgnoreCase);
-            if (index >= 0)
-            {
-                rest = rest[(index + anchor.Length)..];
-                if (skinFolder.Length > 0)
-                {
-                    var skinAnchor = "skins/" + skinFolder + "/";
-                    var skinIndex = rest.IndexOf(skinAnchor, StringComparison.OrdinalIgnoreCase);
-                    if (skinIndex >= 0) rest = rest[(skinIndex + skinAnchor.Length)..];
-                }
-            }
-        }
-
+        if (anchor.Length > 0 && rest.StartsWith(anchor, StringComparison.OrdinalIgnoreCase))
+            rest = rest[anchor.Length..];
         return SanitizePath(rest);
     }
 
@@ -607,22 +719,30 @@ public static class CatalogPaths
         return candidates;
     }
 
-    /// <summary>
-    /// Where one entry goes when the catalog exports it: <c>类别\英雄\皮肤\相对路径</c>, with the skin
-    /// level left out when the entry belongs to no skin.
-    /// </summary>
-    public static string ExportPathOf(CatalogEntry entry, CatalogHero? hero, CatalogSkinLabel? skin)
+    /// <summary>True when a reference names a file (some emotes point at a bare folder).</summary>
+    public static bool LooksLikeFile(string? reference)
     {
-        var categoryFolder = CatalogCategoryInfo.Of(entry.Category).Folder;
-        var heroName = SafeFolderOf(hero is null ? "未指派" : hero.Folder.Length > 0 ? hero.Folder : hero.Label);
-        var relative = RelativeOf(entry.Path, hero?.Folder ?? string.Empty, skin?.Folder ?? string.Empty);
-        if (skin is null) return Path.Combine(categoryFolder, heroName, relative);
-
-        var skinName = SafeFolderOf(skin.Folder.Length > 0 ? skin.Folder : skin.Label);
-        return skinName.Length == 0
-            ? Path.Combine(categoryFolder, heroName, relative)
-            : Path.Combine(categoryFolder, heroName, skinName, relative);
+        if (string.IsNullOrWhiteSpace(reference)) return false;
+        var value = reference.Trim();
+        var slash = value.LastIndexOf('/');
+        var name = slash < 0 ? value : value[(slash + 1)..];
+        return name.Contains('.') && !name.EndsWith(".", StringComparison.Ordinal);
     }
+
+    /// <summary>
+    /// Where one entry goes when the catalog exports it:
+    /// <c>类别\组\条目\相对路径</c>.
+    /// </summary>
+    public static string ExportPathOf(CatalogEntry entry, CatalogSectionInfo section, CatalogGroup group, CatalogEntity entity)
+    {
+        var relative = RelativeOf(entry.Path, entity.Anchor);
+        if (relative.Length == 0) relative = SafeFolderOf(entry.FileName);
+        return Path.Combine(EntityFolderOf(section, group, entity), relative);
+    }
+
+    /// <summary>The folder of one entity below the export root: <c>类别\组\条目</c>.</summary>
+    public static string EntityFolderOf(CatalogSectionInfo section, CatalogGroup group, CatalogEntity entity)
+        => Path.Combine(section.Folder, SafeFolderOf(group.Folder), SafeFolderOf(entity.Folder));
 
     /// <summary>Turns a label into a folder name Windows accepts.</summary>
     public static string SafeFolderOf(string label)

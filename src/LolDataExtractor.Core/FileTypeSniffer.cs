@@ -27,6 +27,8 @@ public static class FileTypeSniffer
         new(0, "OEGM"u8.ToArray(), "mapgeo", "model"),
         new(0, "NVR\0"u8.ToArray(), "nvr", "model"),
         new(0, "\x1bLua"u8.ToArray(), "luac", "text"),
+        new(0, new byte[] { 0x1A, 0x45, 0xDF, 0xA3 }, "webm", "video"),
+        new(4, "ftyp"u8.ToArray(), "mp4", "video"),
     };
 
     private static readonly Dictionary<string, string> CategoryByExtension = new(StringComparer.OrdinalIgnoreCase)
@@ -42,6 +44,7 @@ public static class FileTypeSniffer
         ["cfg"] = "text", ["manifest"] = "text", ["sproject"] = "text", ["subchunktoc"] = "text",
         ["legacydirlistinfo"] = "text", ["rec"] = "text",
         ["dx11"] = "shader", ["dx9"] = "shader", ["ps_2_0"] = "shader", ["vs_2_0"] = "shader",
+        ["webm"] = "video", ["mp4"] = "video", ["ogv"] = "video", ["mov"] = "video",
     };
 
     public static string CategoryOf(string? extension)

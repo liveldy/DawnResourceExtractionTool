@@ -135,6 +135,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         _audioToolMissing = !VgmstreamTool.IsAvailable;
         _notes = AudioNoteStore.Load();
         _speechModelMissing = !SpeechRecognizer.IsModelPresent;
+        InitializeTheme();
 
         foreach (var category in Categories.Where(option => option.Value is not null))
             ExportCategories.Add(new CategoryToggle(category.Value!, category.Display, true));
@@ -170,6 +171,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         SelectNoCategoriesCommand = new RelayCommand(() => SetCategories(_ => false));
         SelectCategoryPresetCommand = new RelayCommand(parameter => SetCategories(value => value == parameter as string));
         InitializeCatalog();
+        InitializeAbout();
         RefreshAudioToolState();
         ResetPreview();
         RaiseCommandStates();
@@ -181,6 +183,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         new CategoryOption("纹理 texture", "texture"),
         new CategoryOption("模型 model", "model"),
         new CategoryOption("音频 audio", "audio"),
+        new CategoryOption("视频 video", "video"),
         new CategoryOption("数据 bin", "bin"),
         new CategoryOption("文本 text", "text"),
         new CategoryOption("着色器 shader", "shader"),
@@ -2246,69 +2249,91 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     }
 
     private async Task DownloadHashesAsync()
+        => await RunBusyAsync("下载哈希表…", FetchHashesAsync);
+
+    /// <summary>True when no name index is loaded, i.e. the hash tables were never downloaded here.</summary>
+    public bool NeedsHashTable => _names.IsEmpty;
+
+    /// <summary>
+    /// Startup check: without a name index every entry is a bare hash, so the hash tables are fetched
+    /// once while the loading screen is up. A failure is logged and the app keeps running with hash
+    /// names — the toolbar button stays available for a retry. Returns true when the index is ready.
+    /// </summary>
+    public async Task<bool> EnsureHashTableAsync()
     {
-        await RunBusyAsync("下载哈希表…", async () =>
+        if (!NeedsHashTable) return true;
+
+        Log($"未找到名称索引，自动下载哈希表：{_settings.HashTableDirectory}");
+        await RunBusyAsync("检查资源：下载哈希表（首次运行，约 230 MB，只下一次）…", FetchHashesAsync, showErrors: false);
+        if (!NeedsHashTable) return true;
+
+        HashStatus = "名称索引：未生成（条目将以哈希命名，可在工具栏点「下载哈希表」重试）";
+        Log("自动下载哈希表未完成：" + StatusText);
+        return false;
+    }
+
+    /// <summary>Downloads the tables, rebuilds the name index and reloads the open wad; the caller owns the busy state.</summary>
+    private async Task FetchHashesAsync()
+    {
+        var fetcher = new HashTableFetcher();
+        var progress = new Progress<HashTableFetchProgress>(p =>
         {
-            var fetcher = new HashTableFetcher();
-            var progress = new Progress<HashTableFetchProgress>(p =>
-            {
-                ProgressValue = p.BytesTotal == 0 ? 0 : p.BytesDone * 100.0 / p.BytesTotal;
-                StatusText = $"哈希表 {p.FilesDone}/{p.FilesTotal} 个分片 · {ExtractionSummary.Format(p.BytesDone)} / {ExtractionSummary.Format(p.BytesTotal)}";
-            });
-
-            var result = await fetcher.FetchAsync(_settings.HashTableDirectory, token: null, progress: progress);
-            Log($"哈希表就绪：下载 {result.Downloaded} 个、跳过 {result.Skipped} 个，共 {ExtractionSummary.Format(result.Bytes)}");
-
-            StatusText = "生成名称索引…";
-            var textFiles = HashTableFetcher.FindTextTables(_settings.HashTableDirectory);
-            // Never overwrite a working index with an empty one: a directory the fetch did not
-            // fill (or a stale one) used to produce a 20 byte index and hash-only names.
-            if (textFiles.Count == 0)
-                throw new InvalidOperationException($"哈希表目录中没有文本文件，索引未改动：{_settings.HashTableDirectory}");
-            var table = await Task.Run(() => NameTable.LoadTextFiles(textFiles));
-
-            if (Wads.Count > 0)
-            {
-                var hashes = await Task.Run(() =>
-                {
-                    var set = new HashSet<ulong>();
-                    foreach (var wad in Wads.Where(w => !w.IsClient))
-                    {
-                        using var archive = WadArchive.Open(wad.FullPath);
-                        foreach (var entry in archive.ReadEntries(null)) set.Add(entry.Hash);
-                    }
-                    return set;
-                });
-                var scoped = await Task.Run(() => table.Filter(hashes));
-                Log($"按本地 {hashes.Count:N0} 个 hash 收敛索引：命中 {scoped.Count:N0} 条");
-                table = scoped;
-            }
-
-            await Task.Run(() => table.SaveBinary(_settings.NamesIndexPath));
-            Log($"名称索引已写入 {_settings.NamesIndexPath}（{ExtractionSummary.Format(new FileInfo(_settings.NamesIndexPath).Length)}）");
-
-            // The client archives have their own name space; its table is a single 17 MB file.
-            NameTable clientTable;
-            try
-            {
-                StatusText = "下载客户端哈希表…";
-                var clientText = await fetcher.FetchClientTableAsync(_settings.ClientTableDirectory, token: null, progress: progress);
-                clientTable = await Task.Run(() => NameTable.LoadTextFiles(new[] { clientText }));
-                await Task.Run(() => clientTable.SaveBinary(_settings.ClientNamesPath));
-                Log($"客户端名称索引已写入 {_settings.ClientNamesPath}（{clientTable.Count:N0} 条）");
-            }
-            catch (Exception ex)
-            {
-                clientTable = _clientNames;
-                Log("客户端哈希表未更新：" + ex.Message);
-            }
-
-            _clientNames = clientTable;
-            _names = clientTable.IsEmpty ? table : table.Union(clientTable);
-            HashStatus = $"名称索引：{_names.Count:N0} 条路径";
-
-            if (SelectedWad is not null) await LoadEntriesAsync(SelectedWad);
+            ProgressValue = p.BytesTotal == 0 ? 0 : p.BytesDone * 100.0 / p.BytesTotal;
+            StatusText = $"哈希表 {p.FilesDone}/{p.FilesTotal} 个分片 · {ExtractionSummary.Format(p.BytesDone)} / {ExtractionSummary.Format(p.BytesTotal)}";
         });
+
+        var result = await fetcher.FetchAsync(_settings.HashTableDirectory, token: null, progress: progress);
+        Log($"哈希表就绪：下载 {result.Downloaded} 个、跳过 {result.Skipped} 个，共 {ExtractionSummary.Format(result.Bytes)}");
+
+        StatusText = "生成名称索引…";
+        var textFiles = HashTableFetcher.FindTextTables(_settings.HashTableDirectory);
+        // Never overwrite a working index with an empty one: a directory the fetch did not
+        // fill (or a stale one) used to produce a 20 byte index and hash-only names.
+        if (textFiles.Count == 0)
+            throw new InvalidOperationException($"哈希表目录中没有文本文件，索引未改动：{_settings.HashTableDirectory}");
+        var table = await Task.Run(() => NameTable.LoadTextFiles(textFiles));
+
+        if (Wads.Count > 0)
+        {
+            var hashes = await Task.Run(() =>
+            {
+                var set = new HashSet<ulong>();
+                foreach (var wad in Wads.Where(w => !w.IsClient))
+                {
+                    using var archive = WadArchive.Open(wad.FullPath);
+                    foreach (var entry in archive.ReadEntries(null)) set.Add(entry.Hash);
+                }
+                return set;
+            });
+            var scoped = await Task.Run(() => table.Filter(hashes));
+            Log($"按本地 {hashes.Count:N0} 个 hash 收敛索引：命中 {scoped.Count:N0} 条");
+            table = scoped;
+        }
+
+        await Task.Run(() => table.SaveBinary(_settings.NamesIndexPath));
+        Log($"名称索引已写入 {_settings.NamesIndexPath}（{ExtractionSummary.Format(new FileInfo(_settings.NamesIndexPath).Length)}）");
+
+        // The client archives have their own name space; its table is a single 17 MB file.
+        NameTable clientTable;
+        try
+        {
+            StatusText = "下载客户端哈希表…";
+            var clientText = await fetcher.FetchClientTableAsync(_settings.ClientTableDirectory, token: null, progress: progress);
+            clientTable = await Task.Run(() => NameTable.LoadTextFiles(new[] { clientText }));
+            await Task.Run(() => clientTable.SaveBinary(_settings.ClientNamesPath));
+            Log($"客户端名称索引已写入 {_settings.ClientNamesPath}（{clientTable.Count:N0} 条）");
+        }
+        catch (Exception ex)
+        {
+            clientTable = _clientNames;
+            Log("客户端哈希表未更新：" + ex.Message);
+        }
+
+        _clientNames = clientTable;
+        _names = clientTable.IsEmpty ? table : table.Union(clientTable);
+        HashStatus = $"名称索引：{_names.Count:N0} 条路径";
+
+        if (SelectedWad is not null) await LoadEntriesAsync(SelectedWad);
     }
 
     private void Cancel()
@@ -2343,7 +2368,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         if (dialog.ShowDialog() == true) OutputRootText = dialog.FolderName;
     }
 
-    private async Task RunBusyAsync(string status, Func<Task> action)
+    /// <summary>Runs one operation with the busy flag and progress state; errors land in the log.</summary>
+    /// <param name="showErrors">False for the startup check: a failure is logged without a dialog.</param>
+    private async Task RunBusyAsync(string status, Func<Task> action, bool showErrors = true)
     {
         if (IsBusy) return;
 
@@ -2365,7 +2392,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         {
             StatusText = "出错：" + ex.Message;
             Log("出错：" + ex);
-            MessageBox.Show(ex.Message, "英雄联盟数据提取工具", MessageBoxButton.OK, MessageBoxImage.Warning);
+            if (showErrors) MessageBox.Show(ex.Message, "英雄联盟数据提取工具", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
         finally
         {

@@ -4,49 +4,183 @@ namespace LolDataExtractor.Tests;
 
 /// <summary>
 /// The catalog is the only place where folder names are guessed at, so the rules that decide
-/// "this belongs to Ahri" are pinned here. The shapes come from the real client tables.
+/// "this belongs to Ahri" and "this is the series of that skin" are pinned here. The shapes come
+/// from the real client tables.
 /// </summary>
 public class CatalogTests
 {
-    /// <summary>
-    /// The localized copy, in the shape the client writes it: <c>name</c> is the title and
-    /// <c>description</c> the champion. Neither is used for the label — the alias is.
-    /// </summary>
-    private const string SummaryJson = """
+    /// <summary>The English table, in the shape the client writes it.</summary>
+    private const string ChampionSummary = """
         [
           { "id": -1, "name": "None", "description": "", "alias": "None" },
-          { "id": 103, "name": "九尾妖狐", "description": "阿狸", "alias": "Ahri" },
-          { "id": 1, "name": "黑暗之女", "description": "安妮", "alias": "Annie" },
-          { "id": 238, "name": "影流之镰", "description": "劫", "alias": "Zed" }
+          { "id": 103, "name": "Ahri", "description": "the Nine-Tailed Fox", "alias": "Ahri",
+            "squarePortraitPath": "/lol-game-data/assets/v1/champion-icons/103.png" },
+          { "id": 1, "name": "Annie", "description": "the Dark Child", "alias": "Annie",
+            "squarePortraitPath": "/lol-game-data/assets/v1/champion-icons/1.png" },
+          { "id": 238, "name": "Zed", "description": "the Master of Shadows", "alias": "Zed",
+            "squarePortraitPath": "/lol-game-data/assets/v1/champion-icons/238.png" }
         ]
         """;
 
-    /// <summary>A mode variant of a champion: same display name, different alias.</summary>
-    private const string VariantSummaryJson = """
-        [
-          { "id": 103, "name": "Ahri", "description": "the Nine-Tailed Fox", "alias": "Ahri" },
-          { "id": 60103, "name": "Ahri", "description": "The Nine-Tailed Fox", "alias": "Jade_Ahri" }
-        ]
-        """;
-
-    private const string SkinsJson = """
+    private const string Skins = """
         {
           "103000": {
-            "id": 103000, "isBase": true, "name": "Ahri", "isLegacy": false,
-            "splashPath": "/lol-game-data/assets/ASSETS/Characters/Ahri/Skins/Base/Images/ahri_splash_centered_0.jpg"
+            "id": 103000, "isBase": true, "name": "Ahri", "description": "",
+            "splashPath": "/lol-game-data/assets/ASSETS/Characters/Ahri/Skins/Base/Images/ahri_splash_centered_0.jpg",
+            "chromas": []
           },
           "103005": {
-            "id": 103005, "isBase": false, "name": "Challenger Ahri", "isLegacy": false,
-            "splashPath": "/lol-game-data/assets/ASSETS/Characters/Ahri/Skins/Skin05/Images/ahri_splash_centered_5.jpg"
+            "id": 103005, "isBase": false, "name": "Challenger Ahri", "description": "A champion of the rift.",
+            "splashPath": "/lol-game-data/assets/ASSETS/Characters/Ahri/Skins/Skin05/Images/ahri_splash_centered_5.jpg",
+            "tilePath": "/lol-game-data/assets/ASSETS/Characters/Ahri/Skins/Skin05/Images/ahri_splash_tile_5.jpg",
+            "skinLines": [{ "id": 110 }],
+            "chromas": [
+              { "id": 103018, "name": "Challenger Ahri (Golden)",
+                "chromaPath": "/lol-game-data/assets/v1/champion-chroma-images/103/103018.png",
+                "tilePath": "/lol-game-data/assets/v1/champion-chroma-images/103/103018.png" }
+            ]
           },
           "1001": {
-            "id": 1001, "isBase": false, "name": "Goth Annie", "isLegacy": false,
-            "splashPath": "/lol-game-data/assets/ASSETS/Characters/Annie/Skins/Skin01/Images/annie_splash_centered_1.jpg"
+            "id": 1001, "isBase": false, "name": "Goth Annie", "description": "",
+            "splashPath": "/lol-game-data/assets/ASSETS/Characters/Annie/Skins/Skin01/Images/annie_splash_centered_1.jpg",
+            "skinLines": [{ "id": 110 }],
+            "chromas": []
+          },
+          "103001": {
+            "id": 103001, "isBase": false, "name": "Goth Ahri", "description": "",
+            "splashPath": "/lol-game-data/assets/ASSETS/Characters/Ahri/Skins/Skin01/Images/ahri_splash_centered_1.jpg",
+            "skinLines": [{ "id": 110 }],
+            "chromas": []
           }
         }
         """;
 
-    private static CatalogTables Tables() => CatalogTables.FromJson(SummaryJson, SkinsJson);
+    private const string SkinLines = """
+        [
+          { "id": 0, "name": "", "description": "" },
+          { "id": 110, "name": "Goth", "description": "It's not a phase." }
+        ]
+        """;
+
+    private const string Universes = """
+        [
+          { "id": 0, "name": "", "description": "", "imagePath": "", "skinSets": [] },
+          { "id": 100, "name": "Neighborhood Nightmare", "description": "", "imagePath": "",
+            "skinSets": [110] }
+        ]
+        """;
+
+    private const string Items = """
+        [
+          { "id": 1001, "name": "Boots", "description": "<mainText><stats><attention>25</attention> Move Speed</stats></mainText>",
+            "categories": ["Boots"], "iconPath": "/lol-game-data/assets/ASSETS/Items/Icons2D/1001_class_t1_bootsofspeed.png" },
+          { "id": 1004, "name": "Faerie Charm", "description": "",
+            "categories": ["ManaRegen", "GoldPer"], "iconPath": "/lol-game-data/assets/ASSETS/Items/Icons2D/1004_class_t1_faeriecharm.png" }
+        ]
+        """;
+
+    private const string Perks = """
+        [
+          { "id": 8128, "name": "Dark Harvest", "shortDesc": "Damaging a low health champion harvests their soul.",
+            "iconPath": "/lol-game-data/assets/v1/perk-images/Styles/Domination/DarkHarvest/DarkHarvest.png" },
+          { "id": 8437, "name": "Grasp of the Undying", "shortDesc": "",
+            "iconPath": "/lol-game-data/assets/v1/perk-images/Styles/Resolve/GraspOfTheUndying/GraspOfTheUndying.png" }
+        ]
+        """;
+
+    private const string PerkStyles = """
+        {
+          "schemaVersion": 3,
+          "styles": [
+            { "id": 8100, "name": "Domination", "tooltip": "Burst damage and target access",
+              "iconPath": "/lol-game-data/assets/v1/perk-images/Styles/7200_Domination.png",
+              "assetMap": { "p8100_s0_k0": "/lol-game-data/assets/v1/perk-images/Styles/Domination/p8100_s0_k0.jpg" },
+              "slots": [{ "type": "kKeyStone", "perks": [8128] }] },
+            { "id": 8400, "name": "Resolve", "tooltip": "Durability and crowd control",
+              "iconPath": "/lol-game-data/assets/v1/perk-images/Styles/7204_Resolve.png",
+              "assetMap": {},
+              "slots": [{ "type": "kKeyStone", "perks": [8437] }] }
+          ]
+        }
+        """;
+
+    private const string Regalia = """
+        [
+          { "id": "3", "assetPath": "/lol-game-data/assets/ASSETS/Regalia/BannerSkins/lny2023.png",
+            "regaliaType": "kBanner", "localizedName": "Lunar Revel 2023 Banner", "localizedDescription": "" }
+        ]
+        """;
+
+    private const string Emotes = """
+        [
+          { "id": 10, "name": "Mastery 10+", "inventoryIcon": "/lol-game-data/assets/", "description": "" },
+          { "id": 11, "name": "Happy", "inventoryIcon": "/lol-game-data/assets/ASSETS/Loadouts/SummonerEmotes/Champions/Ahri/ahri_happy_inventory.png",
+            "description": "A happy emote." }
+        ]
+        """;
+
+    private const string Icons = """
+        [
+          { "id": 10001, "title": "Prestige Icon", "imagePath": "/lol-game-data/assets/v1/profile-icons/10001.jpg",
+            "descriptions": [{ "region": "riot", "description": "Prestige collection icon" }] },
+          { "id": 20002, "title": "Loose Icon", "imagePath": "/lol-game-data/assets/v1/profile-icons/20002.jpg",
+            "descriptions": [] }
+        ]
+        """;
+
+    private const string IconSets = """
+        [
+          { "id": 100, "displayName": "Special Events", "description": "", "icons": [10001] }
+        ]
+        """;
+
+    private const string Spells = """
+        [
+          { "id": 1, "name": "Cleanse", "description": "Removes disables.",
+            "gameModes": ["CLASSIC", "ARAM"], "iconPath": "/lol-game-data/assets/DATA/Spells/Icons2D/Summoner_boost.png" }
+        ]
+        """;
+
+    private const string Wards = """
+        [
+          { "id": 1, "name": "Harrowing Ward", "description": "A spooky ward.",
+            "wardImagePath": "/lol-game-data/assets/content/src/LeagueClient/WardSkinImages/wardHero_1.png",
+            "wardShadowImagePath": "/lol-game-data/content/src/LeagueClient/WardSkinImages/wardHeroShadow_1.png" }
+        ]
+        """;
+
+    private const string WardSets = """
+        [
+          { "id": 10, "displayName": "Harrowing", "description": "", "wards": [1] }
+        ]
+        """;
+
+    private const string SkinBorders = """
+        [
+          { "name": "Challenger Border", "image": "/lol-game-data/assets/ASSETS/Characters/Ahri/Skins/Skin05/UI/ahri_border_5.png" }
+        ]
+        """;
+
+    private static IReadOnlyDictionary<string, string> Files() => new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+    {
+        ["champion-summary.json"] = ChampionSummary,
+        ["skins.json"] = Skins,
+        ["skinlines.json"] = SkinLines,
+        ["universes.json"] = Universes,
+        ["skinborders.json"] = SkinBorders,
+        ["items.json"] = Items,
+        ["perks.json"] = Perks,
+        ["perkstyles.json"] = PerkStyles,
+        ["regalia.json"] = Regalia,
+        ["summoner-emotes.json"] = Emotes,
+        ["summoner-icons.json"] = Icons,
+        ["summoner-icon-sets.json"] = IconSets,
+        ["summoner-spells.json"] = Spells,
+        ["ward-skins.json"] = Wards,
+        ["ward-skin-sets.json"] = WardSets,
+    };
+
+    private static CatalogTables Tables() => CatalogTables.FromJson(Files());
 
     /// <summary>Overrides of a throwaway file, so a test never touches the user's own.</summary>
     private static CatalogOverrides Overrides() => CatalogOverrides.Load(TempFile());
@@ -62,100 +196,173 @@ public class CatalogTests
         var tables = Tables();
 
         Assert.Equal(3, tables.Champions.Count);      // id -1 is not a champion
-        Assert.Equal(3, tables.Skins.Count);          // skins.json is an object keyed by id
+        Assert.Equal(4, tables.Skins.Count);          // skins.json is an object keyed by id
         Assert.True(tables.TryGetChampionByAlias("ahri", out var ahri));
         Assert.Equal(103, ahri.Id);
         Assert.Equal("Ahri", ahri.Label);             // the alias, never the localized name
+        Assert.Equal("Ahri · the Nine-Tailed Fox", CatalogTables.DetailOf(ahri));
 
         Assert.True(tables.TryGetSkin(103005, out var skin));
         Assert.Equal("Challenger Ahri", skin.Name);
         Assert.Equal(103, skin.ChampionId);
+        Assert.Equal(110, skin.SkinLine);
     }
 
     [Fact]
-    public void LabelIsTheAliasEvenWhenTheDisplayNameRepeats()
+    public void SkinSeriesJoinUniverseAndLine()
     {
-        var tables = CatalogTables.FromJson(VariantSummaryJson, SkinsJson);
+        var tables = Tables();
+        Assert.True(tables.TryGetSkin(103005, out var skin));
 
-        Assert.True(tables.TryGetChampionByAlias("Jade_Ahri", out var variant));
-        Assert.Equal(60103, variant.Id);
-        Assert.Equal("Jade_Ahri", variant.Label);   // "Ahri" twice would make the two nodes look alike
+        var (label, detail, rank) = tables.SeriesOf(skin);
+        Assert.Equal("Neighborhood Nightmare · Goth", label);
+        Assert.Equal("It's not a phase.", detail);
+        Assert.Equal(0, rank);
+
+        Assert.True(tables.TryGetSkin(103000, out var baseSkin));
+        Assert.Equal("Base", tables.SeriesOf(baseSkin).Label);
+    }
+
+    [Fact]
+    public void SameSkinNumberOfTwoChampionsStaysApart()
+    {
+        var tables = Tables();
+        var nodes = new CatalogNodes();
+        Assert.True(tables.TryGetSkin(1001, out var annie));
+        Assert.True(tables.TryGetSkin(103001, out var ahri));
+
+        var first = tables.SkinTarget(nodes, annie);
+        var second = tables.SkinTarget(nodes, ahri);
+
+        // Same series group and both live in "skin01", but they are two different skins.
+        Assert.Equal(first.Group, second.Group);
+        Assert.NotEqual(first.Entity, second.Entity);
+        Assert.Equal("annie_skin01", nodes.Entities[first.Entity].Folder);
+        Assert.Equal("ahri_skin01", nodes.Entities[second.Entity].Folder);
     }
 
     [Fact]
     public void BrokenTablesOnlyCostLabels()
     {
-        var tables = CatalogTables.FromJson("{ not json", null);
+        var tables = CatalogTables.FromJson(new Dictionary<string, string> { ["champion-summary.json"] = "{ not json" });
 
         Assert.True(tables.IsEmpty);
         Assert.False(tables.TryGuessChampion("ahri", out _, out _));
     }
 
     [Fact]
-    public void ResolvesSkinFromItsImageFolder()
+    public void ReadsItemRuneIconAndWardGroups()
     {
         var tables = Tables();
+        var nodes = new CatalogNodes();
+        var index = tables.BuildReferenceIndex(nodes);
 
-        Assert.True(tables.TryGetSkinByFolder("ahri", "skin05", out var skin));
-        Assert.Equal(103005, skin.Id);
-        Assert.True(tables.TryGetSkinByFolder("Annie", "Skin01", out var annieSkin));
-        Assert.Equal(1001, annieSkin.Id);
-        Assert.False(tables.TryGetSkinByFolder("ahri", "skin42", out _));
+        var item = Resolve(index, nodes, "/lol-game-data/assets/ASSETS/Items/Icons2D/1001_class_t1_bootsofspeed.png");
+        Assert.Equal(CatalogSection.Item, item.Group.Section);
+        Assert.Equal("Boots", item.Group.Label);
+        Assert.Equal("Boots", item.Entity.Label);
+        Assert.Equal("25 Move Speed", item.Entity.Detail);   // markup is dropped
+
+        var perk = Resolve(index, nodes, "/lol-game-data/assets/v1/perk-images/Styles/Domination/DarkHarvest/DarkHarvest.png");
+        Assert.Equal(CatalogSection.Perk, perk.Group.Section);
+        Assert.Equal("Domination", perk.Group.Label);
+        Assert.Equal("Dark Harvest", perk.Entity.Label);
+
+        var icon = Resolve(index, nodes, "/lol-game-data/assets/v1/profile-icons/10001.jpg");
+        Assert.Equal(CatalogSection.Icon, icon.Group.Section);
+        Assert.Equal("Special Events", icon.Group.Label);
+        Assert.Equal("Prestige Icon", icon.Entity.Label);
+
+        var loose = Resolve(index, nodes, "/lol-game-data/assets/v1/profile-icons/20002.jpg");
+        Assert.Equal("Other", loose.Group.Label);
+
+        var emote = Resolve(index, nodes, "/lol-game-data/assets/ASSETS/Loadouts/SummonerEmotes/Champions/Ahri/ahri_happy_inventory.png");
+        Assert.Equal(CatalogSection.Emote, emote.Group.Section);
+        Assert.Equal("Champions", emote.Group.Label);
+
+        var ward = Resolve(index, nodes, "/lol-game-data/assets/content/src/LeagueClient/WardSkinImages/wardHero_1.png");
+        Assert.Equal(CatalogSection.Ward, ward.Group.Section);
+        Assert.Equal("Harrowing", ward.Group.Label);
+
+        var spell = Resolve(index, nodes, "/lol-game-data/assets/DATA/Spells/Icons2D/Summoner_boost.png");
+        Assert.Equal(CatalogSection.SummonerSpell, spell.Group.Section);
+        Assert.Equal("Cleanse", spell.Entity.Label);
+    }
+
+    private static (CatalogGroup Group, CatalogEntity Entity) Resolve(
+        IReadOnlyDictionary<ulong, CatalogPlacement> index, CatalogNodes nodes, string reference)
+    {
+        var placement = CatalogPaths.ClientCandidates(reference)
+            .Select(PathHashing.Compute)
+            .Where(index.ContainsKey)
+            .Select(hash => index[hash])
+            .First();
+        return (nodes.Groups[placement.Group], nodes.Entities[placement.Entity]);
     }
 
     [Fact]
-    public void ExtractsTheFolderPairOfAPath()
+    public void SkinReferencesLandInTheirSeries()
     {
-        Assert.Equal("ahri|skin05",
-            CatalogTables.SkinFolderOf("/lol-game-data/assets/ASSETS/Characters/Ahri/Skins/Skin05/Images/x.jpg"));
-        Assert.Equal("ahri", CatalogTables.ChampionFolderOf("assets/characters/ahri/skins/base/particles/x.tex"));
-        Assert.Equal("base", CatalogTables.SkinFolderIn("assets/characters/ahri/skins/base/particles/x.tex"));
-        Assert.Null(CatalogTables.SkinFolderOf("/lol-game-data/assets/v1/champion-icons/103.png"));
+        var tables = Tables();
+        var nodes = new CatalogNodes();
+        var index = tables.BuildReferenceIndex(nodes);
+
+        var splash = Resolve(index, nodes,
+            "/lol-game-data/assets/ASSETS/Characters/Ahri/Skins/Skin05/Images/ahri_splash_centered_5.jpg");
+        Assert.Equal(CatalogSection.Skin, splash.Group.Section);
+        Assert.Equal("Neighborhood Nightmare · Goth", splash.Group.Label);
+        Assert.Equal("Challenger Ahri", splash.Entity.Label);
+        Assert.Equal("ahri_skin05", splash.Entity.Folder);
+        Assert.Equal("A champion of the rift.", splash.Entity.Detail);
+
+        // A chroma image belongs to the skin that owns the chroma.
+        var chroma = Resolve(index, nodes,
+            "/lol-game-data/assets/v1/champion-chroma-images/103/103018.png");
+        Assert.Equal("Challenger Ahri", chroma.Entity.Label);
+
+        // A skin border lives with the skin it decorates.
+        var border = Resolve(index, nodes,
+            "/lol-game-data/assets/ASSETS/Characters/Ahri/Skins/Skin05/UI/ahri_border_5.png");
+        Assert.Equal("Challenger Ahri", border.Entity.Label);
+
+        // Base skins are grouped together, not with a series.
+        var baseSkin = Resolve(index, nodes,
+            "/lol-game-data/assets/ASSETS/Characters/Ahri/Skins/Base/Images/ahri_splash_centered_0.jpg");
+        Assert.Equal("Base", baseSkin.Group.Label);
+        Assert.Equal("Ahri", baseSkin.Entity.Label);
     }
 
-    [Theory]
-    [InlineData("ahri", 103, false)]                 // exact alias
-    [InlineData("Ahri", 103, false)]
-    [InlineData("zedshadow", 238, true)]             // starts with an alias
-    [InlineData("annietibbers", 1, true)]
-    [InlineData("jade_ahri", 103, true)]             // mode prefix dropped
-    [InlineData("cherry_goh_zed", 238, true)]        // ends with an alias
-    public void GuessesChampionsFromFolderNames(string folder, int championId, bool guessed)
+    [Fact]
+    public void ChampionPortraitIsTheChampionIcon()
     {
-        Assert.True(Tables().TryGuessChampion(folder, out var champion, out var isGuess));
-        Assert.Equal(championId, champion.Id);
-        Assert.Equal(guessed, isGuess);
+        var tables = Tables();
+        var nodes = new CatalogNodes();
+        var index = tables.BuildReferenceIndex(nodes);
+
+        var icon = Resolve(index, nodes, "/lol-game-data/assets/v1/champion-icons/1.png");
+        Assert.Equal(CatalogSection.Champion, icon.Group.Section);
+        Assert.Equal("Annie", icon.Group.Label);
+        Assert.Equal("Icon", icon.Entity.Label);
     }
 
-    [Theory]
-    [InlineData("sightward")]        // not a champion at all
-    [InlineData("tft17_jinx")]       // a mode prefix gains nothing when the table has no Jinx
-    [InlineData("")]
-    [InlineData(null)]
-    public void LeavesUnknownFoldersAlone(string? folder)
-        => Assert.False(Tables().TryGuessChampion(folder, out _, out _));
+    [Fact]
+    public void EmptyEmoteReferenceIsNotAFile()
+    {
+        Assert.False(CatalogPaths.LooksLikeFile("/lol-game-data/assets/"));
+        Assert.True(CatalogPaths.LooksLikeFile("/lol-game-data/assets/v1/profile-icons/1.jpg"));
+    }
 
     // ── path helpers ─────────────────────────────────────────────────────────────────────────
-
-    [Theory]
-    [InlineData("/lol-game-data/assets/v1/champion-icons/103.png")]
-    [InlineData("/lol-game-data/assets/ASSETS/Characters/Ahri/Skins/Skin05/Images/x.jpg")]
-    public void ClientCandidatesCoverBothLocales(string reference)
-    {
-        var candidates = CatalogPaths.ClientCandidates(reference);
-
-        Assert.Equal(4, candidates.Count);
-        Assert.Contains(candidates, path => path.StartsWith("plugins/rcp-be-lol-game-data/global/default/", StringComparison.Ordinal));
-        Assert.Contains(candidates, path => path.StartsWith("plugins/rcp-be-lol-game-data/global/zh_cn/", StringComparison.Ordinal));
-    }
 
     [Fact]
     public void ClientCandidatesTryThePathWithAndWithoutTheAssetsPrefix()
     {
         var candidates = CatalogPaths.ClientCandidates("/lol-game-data/assets/v1/champion-icons/103.png");
 
+        Assert.Equal(4, candidates.Count);
         Assert.Contains("plugins/rcp-be-lol-game-data/global/default/assets/v1/champion-icons/103.png", candidates);
         Assert.Contains("plugins/rcp-be-lol-game-data/global/default/v1/champion-icons/103.png", candidates);
+        Assert.Contains(candidates, path => path.StartsWith("plugins/rcp-be-lol-game-data/global/zh_cn/", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -184,12 +391,13 @@ public class CatalogTests
         => Assert.Equal(expected, CatalogPaths.LanguageOf(path));
 
     [Fact]
-    public void RelativePathDropsTheChampionAndSkinAnchor()
+    public void RelativePathDropsTheSharedAnchor()
     {
         Assert.Equal(Path.Combine("particles", "ahri_base_tx_cm.tex"),
-            CatalogPaths.RelativeOf("assets/characters/ahri/skins/base/particles/ahri_base_tx_cm.tex", "ahri", "base"));
+            CatalogPaths.RelativeOf("assets/characters/ahri/skins/base/particles/ahri_base_tx_cm.tex",
+                "assets/characters/ahri/skins/base/"));
         Assert.Equal(Path.Combine("v1", "champion-icons", "103.png"),
-            CatalogPaths.RelativeOf("plugins/rcp-be-lol-game-data/global/default/v1/champion-icons/103.png", string.Empty, string.Empty));
+            CatalogPaths.RelativeOf("plugins/rcp-be-lol-game-data/global/default/v1/champion-icons/103.png", string.Empty));
     }
 
     [Fact]
@@ -200,85 +408,197 @@ public class CatalogTests
         Assert.Equal("阿狸_Ahri", CatalogPaths.SafeFolderOf("阿狸 Ahri"));
     }
 
+    [Theory]
+    [InlineData("Item")]
+    [InlineData("item")]
+    [InlineData("装备")]
+    public void SectionKeysAcceptTheEnumOrTheLabel(string key)
+    {
+        Assert.True(CatalogSectionInfo.TryParse(key, out var section));
+        Assert.Equal(CatalogSection.Item, section);
+    }
+
+    [Fact]
+    public void ExportPathKeepsSectionGroupAndEntity()
+    {
+        var section = CatalogSectionInfo.Of(CatalogSection.Champion);
+        var group = new CatalogGroup(CatalogSection.Champion, "Ahri", "ahri", null, 0);
+        var entity = new CatalogEntity(0, "Challenger Ahri", "skin05", null, 5)
+        {
+            Anchor = "assets/characters/ahri/skins/skin05/",
+        };
+        var entry = new CatalogEntry(1, "assets/characters/ahri/skins/skin05/particles/ahri_base_trail_01.tex",
+            @"D:\x\Ahri.wad.client", CatalogSection.Champion, 0, 0, 100, 1);
+
+        Assert.Equal(Path.Combine("英雄", "ahri", "skin05", "particles", "ahri_base_trail_01.tex"),
+            CatalogPaths.ExportPathOf(entry, section, group, entity));
+
+        // A file outside the entity's anchor keeps the rest of its own folders.
+        var loose = entry with { Path = "plugins/rcp-be-lol-game-data/global/default/v1/champion-icons/103.png" };
+        Assert.Equal(Path.Combine("英雄", "ahri", "skin05", "v1", "champion-icons", "103.png"),
+            CatalogPaths.ExportPathOf(loose, section, group, entity));
+    }
+
+    [Fact]
+    public void InfoJsonSitsInTheEntityFolderAndExplainsEveryFile()
+    {
+        var section = CatalogSectionInfo.Of(CatalogSection.Champion);
+        var group = new CatalogGroup(CatalogSection.Champion, "Ahri", "ahri", null, 0);
+        var entity = new CatalogEntity(0, "Challenger Ahri", "skin05", null, 5)
+        {
+            Anchor = "assets/characters/ahri/skins/skin05/",
+        };
+
+        Assert.Equal(Path.Combine("英雄", "ahri", "skin05"),
+            CatalogPaths.EntityFolderOf(section, group, entity));
+
+        var folder = Path.Combine(Path.GetTempPath(), "loldata-tests", Guid.NewGuid().ToString("N"),
+            CatalogPaths.EntityFolderOf(section, group, entity));
+        var file = new CatalogInfoEntry(Path.Combine("particles", "a.tex"),
+            "assets/characters/ahri/skins/skin05/particles/a.tex", "0123456789ABCDEF", 100, "Ahri.wad.client", "tex");
+        var document = new CatalogInfoDocument("2026-11-01T10:00:00+08:00", "LolDataExtractor 1.2.2", "英雄",
+            "Ahri", "Challenger Ahri", entity.Anchor, Path.Combine("英雄", "ahri", "skin05"), 1, 100, new[] { file });
+
+        var path = CatalogInfo.Write(folder, document, CatalogInfo.NameFor(new[] { file.File }));
+        Assert.Equal(Path.Combine(folder, "info.json"), path);
+
+        var reopened = CatalogInfo.Read(path);
+        Assert.NotNull(reopened);
+        Assert.Equal("Ahri", reopened!.Group);
+        Assert.Equal("Challenger Ahri", reopened.Entity);
+        var only = Assert.Single(reopened.Files);
+        Assert.Equal("Ahri.wad.client", only.Wad);
+        Assert.Equal("0123456789ABCDEF", only.Hash);
+        Assert.Contains("英雄", File.ReadAllText(path));   // 中文不转义，直接用记事本也看得懂
+    }
+
+    [Fact]
+    public void InfoJsonNeverOverwritesAnAssetOfTheSameName()
+    {
+        Assert.Equal("info.json", CatalogInfo.NameFor(new[] { Path.Combine("particles", "a.tex") }));
+        Assert.Equal("info.json", CatalogInfo.NameFor(new[] { Path.Combine("sub", "info.json") }));
+        Assert.Equal("_info.json", CatalogInfo.NameFor(new[] { "info.json" }));
+        Assert.Equal("__info.json", CatalogInfo.NameFor(new[] { "info.json", "_info.json" }));
+    }
+
     // ── classifier ───────────────────────────────────────────────────────────────────────────
 
-    private static (CatalogCategory Category, CatalogHero Hero, CatalogSkinLabel Skin) Classify(
-        CatalogClassifier classifier, string path)
+    private static (CatalogGroup Group, CatalogEntity Entity) Classify(CatalogClassifier classifier, string path)
     {
-        Assert.True(classifier.Classify(path, PathHashing.Compute(path), out var category, out var hero, out var skin));
-        return (category, classifier.Heroes[hero], classifier.Skins[skin]);
+        Assert.True(classifier.TryAssign(path, out var placement));
+        return (classifier.Nodes.Groups[placement.Group], classifier.Nodes.Entities[placement.Entity]);
     }
 
     [Fact]
     public void ClassifiesTheShapesTheGameActuallyUses()
     {
-        var classifier = new CatalogClassifier(Tables(), Overrides());
-
-        var splash = Classify(classifier, "assets/characters/ahri/skins/base/images/ahri_splash_centered_0.jpg");
-        Assert.Equal(CatalogCategory.HeroImage, splash.Category);
-        Assert.Equal("Ahri", splash.Hero.Label);
-        Assert.Equal(CatalogHeroKind.Champion, splash.Hero.Kind);
-        Assert.Equal("基础皮肤", splash.Skin.Label);
-        Assert.Equal(103000, splash.Skin.SkinId);
+        var classifier = new CatalogClassifier(Tables(), Overrides(), new CatalogNodes());
 
         var model = Classify(classifier, "assets/characters/ahri/skins/skin05/particles/ahri_base_tx_cm.tex");
-        Assert.Equal(CatalogCategory.HeroAsset, model.Category);
-        Assert.Equal("皮肤 05 Challenger Ahri", model.Skin.Label);
-        Assert.True(model.Skin.IsKnown);
+        Assert.Equal(CatalogSection.Champion, model.Group.Section);
+        Assert.Equal("Ahri", model.Group.Label);
+        Assert.Equal("Challenger Ahri", model.Entity.Label);
+
+        var baseSkin = Classify(classifier, "assets/characters/ahri/skins/base/particles/x.tex");
+        Assert.Equal("Base", baseSkin.Entity.Label);
 
         var voice = Classify(classifier, "assets/sounds/wwise2016/vo/en_us/characters/ahri/skins/base/ahri_base_vo_audio.bnk");
-        Assert.Equal(CatalogCategory.HeroAudio, voice.Category);
-        Assert.Equal("Ahri", voice.Hero.Label);
+        Assert.Equal(CatalogSection.Champion, voice.Group.Section);
+        Assert.Equal("Ahri", voice.Group.Label);
+        Assert.Equal("Voice", voice.Entity.Label);
 
-        var icon = Classify(classifier, "plugins/rcp-be-lol-game-data/global/default/v1/champion-icons/103.png");
-        Assert.Equal(CatalogCategory.HeroImage, icon.Category);
-        Assert.Equal("Ahri", icon.Hero.Label);
+        var data = Classify(classifier, "data/characters/ahri/ahri.bin");
+        Assert.Equal("Data", data.Entity.Label);
+
+        var clientData = Classify(classifier, "plugins/rcp-be-lol-game-data/global/default/v1/champions/103.json");
+        Assert.Equal("Data", clientData.Entity.Label);
+
+        var hud = Classify(classifier, "assets/characters/ahri/hud/icons2d/ahri_q.tex");
+        Assert.Equal("Icon", hud.Entity.Label);
     }
 
     [Fact]
-    public void AGuessedFolderKeepsItsOwnNode()
+    public void AGuessedFolderStaysOutOfTheCatalog()
     {
-        var classifier = new CatalogClassifier(Tables(), Overrides());
+        var classifier = new CatalogClassifier(Tables(), Overrides(), new CatalogNodes());
 
-        var result = Classify(classifier, "assets/characters/zedshadow/skins/base/x.dds");
+        // "zedshadow" is only a guess (Zed's shadow), and guesses are not shown at all.
+        Assert.False(classifier.TryAssign("assets/characters/zedshadow/skins/base/x.dds", out _));
+        Assert.False(classifier.TryAssign("assets/sounds/wwise2016/vo/en_us/characters/zedshadow/skins/base/x.bnk", out _));
 
-        Assert.Equal(CatalogHeroKind.Guessed, result.Hero.Kind);
-        Assert.Equal(238, result.Hero.ChampionId);
-        Assert.Equal("zedshadow", result.Hero.Folder);
-        Assert.Equal("Zed · zedshadow", result.Hero.Label);
+        // A folder the tables do know still resolves.
+        Assert.True(classifier.TryAssign("assets/characters/ahri/skins/base/x.dds", out var known));
+        Assert.Equal("Ahri", classifier.Nodes.Groups[known.Group].Label);
     }
 
     [Fact]
-    public void BucketsWithoutAChampionGroupByFolder()
+    public void PathsNoSectionOwnsStayOutOfTheCatalog()
     {
-        var classifier = new CatalogClassifier(Tables(), Overrides());
+        var classifier = new CatalogClassifier(Tables(), Overrides(), new CatalogNodes());
 
-        var map = Classify(classifier, "assets/maps/sr/map11/hibiki/foo.mapgeo");
-        Assert.Equal(CatalogCategory.Map, map.Category);
-        Assert.Equal("sr", map.Hero.Label);
-        Assert.Equal("map11", map.Skin.Label);
-
-        var loose = Classify(classifier, "some/path/unknown.bin");
-        Assert.Equal(CatalogCategory.Unclassified, loose.Category);
-        Assert.Equal("some", loose.Hero.Label);
+        Assert.False(classifier.TryAssign("assets/maps/sr/map11/hibiki/floor.mapgeo", out _));
+        Assert.False(classifier.TryAssign("assets/characters/inhibitor/x.tex", out _));   // not a champion
+        Assert.False(classifier.TryAssign("plugins/rcp-fe-lol-static-assets/global/default/images/x.png", out _));
+        Assert.False(classifier.TryAssign("some/path/unknown.bin", out _));
     }
 
     [Fact]
-    public void AnOverrideRuleBeatsTheAutomaticResult()
+    public void ItemAndPerkPathsUseTheTables()
+    {
+        var classifier = new CatalogClassifier(Tables(), Overrides(), new CatalogNodes());
+
+        var icon = Classify(classifier, "assets/items/icons2d/1001_class_t1_bootsofspeed.dds");
+        Assert.Equal(CatalogSection.Item, icon.Group.Section);
+        Assert.Equal("Boots", icon.Entity.Label);
+
+        var script = Classify(classifier, "data/items/1004.luabin64");
+        Assert.Equal("Faerie Charm", script.Entity.Label);
+
+        var rune = Classify(classifier, "assets/perks/styles/domination/darkharvest/darkharvest.tex");
+        Assert.Equal(CatalogSection.Perk, rune.Group.Section);
+        Assert.Equal("Domination", rune.Group.Label);
+        Assert.Equal("Dark Harvest", rune.Entity.Label);
+    }
+
+    [Fact]
+    public void AnOverrideRuleMovesTheNode()
     {
         var overrides = Overrides();
         overrides.AddRule(new CatalogRule
         {
-            PathPrefix = "assets/characters/zedshadow/",
-            Category = "英雄资源",
-            Champion = "ahri",
+            PathPrefix = "assets/characters/ahri/",
+            Group = "测试组",
             Note = "测试用",
         });
 
-        var result = Classify(new CatalogClassifier(Tables(), overrides), "assets/characters/zedshadow/skins/base/x.dds");
+        var nodes = new CatalogNodes();
+        var classifier = new CatalogClassifier(Tables(), overrides, nodes);
+        const string path = "assets/characters/ahri/skins/base/x.dds";
+        Assert.True(classifier.TryAssign(path, out var placement));
 
-        Assert.Equal(CatalogCategory.HeroAsset, result.Category);   // dds would have been an image
-        Assert.Equal("Ahri", result.Hero.Label);                     // the pinned champion wins over the guess
+        Assert.True(classifier.Apply(PathHashing.Compute(path), path, ref placement));
+        Assert.Equal("测试组", nodes.Groups[placement.Group].Label);   // the pinned group wins over the automatic one
+        Assert.Equal(CatalogSection.Champion, nodes.Groups[placement.Group].Section);
+    }
+
+    [Fact]
+    public void AnOverrideCanMoveTheSection()
+    {
+        var overrides = Overrides();
+        overrides.AddRule(new CatalogRule
+        {
+            PathPrefix = "assets/characters/ahri/",
+            Section = "装备",
+        });
+
+        var nodes = new CatalogNodes();
+        var classifier = new CatalogClassifier(Tables(), overrides, nodes);
+        const string path = "assets/characters/ahri/skins/base/x.dds";
+        Assert.True(classifier.TryAssign(path, out var placement));
+        Assert.True(classifier.Apply(PathHashing.Compute(path), path, ref placement));
+
+        Assert.Equal(CatalogSection.Item, nodes.Groups[placement.Group].Section);
+        Assert.Equal("Ahri", nodes.Groups[placement.Group].Label);
     }
 
     [Fact]
@@ -288,8 +608,9 @@ public class CatalogTests
         var overrides = Overrides();
         overrides.SetEntry(PathHashing.Compute(path), new CatalogEntryRule { Hidden = true });
 
-        Assert.False(new CatalogClassifier(Tables(), overrides)
-            .Classify(path, PathHashing.Compute(path), out _, out _, out _));
+        var classifier = new CatalogClassifier(Tables(), overrides, new CatalogNodes());
+        Assert.True(classifier.TryAssign(path, out var placement));
+        Assert.False(classifier.Apply(PathHashing.Compute(path), path, ref placement));
     }
 
     [Fact]
@@ -299,15 +620,16 @@ public class CatalogTests
         try
         {
             var overrides = CatalogOverrides.Load(file);
-            overrides.AddRule(new CatalogRule { PathPrefix = "assets/characters/kiwi_", Category = "共享资源", Champion = "Zed" });
-            overrides.SetEntry(0x1234UL, new CatalogEntryRule { Category = "物品与装备" });
+            overrides.AddRule(new CatalogRule { PathPrefix = "assets/characters/kiwi_", Section = "表情", Group = "Champions", Entity = "Kiwi" });
+            overrides.SetEntry(0x1234UL, new CatalogEntryRule { Section = "装备" });
 
             var reloaded = CatalogOverrides.Load(file);
             var rule = reloaded.RuleFor("assets/characters/kiwi_pet/x.dds");
             Assert.NotNull(rule);
-            Assert.Equal("共享资源", rule!.Category);
-            Assert.Equal("Zed", rule.Champion);
-            Assert.Equal("物品与装备", reloaded.EntryOf(0x1234UL)?.Category);
+            Assert.Equal("表情", rule!.Section);
+            Assert.Equal("Champions", rule.Group);
+            Assert.Equal("Kiwi", rule.Entity);
+            Assert.Equal("装备", reloaded.EntryOf(0x1234UL)?.Section);
             Assert.Equal(rule.PathPrefix, reloaded.RuleFor("assets/characters/kiwi_other/x.dds")?.PathPrefix);
             Assert.Null(reloaded.RuleFor("assets/characters/ahri/x.dds"));
         }
@@ -315,42 +637,6 @@ public class CatalogTests
         {
             if (File.Exists(file)) File.Delete(file);
         }
-    }
-
-    [Theory]
-    [InlineData("HeroImage")]
-    [InlineData("heroimage")]
-    [InlineData("英雄图像")]
-    public void CategoryKeysAcceptTheEnumOrTheLabel(string key)
-    {
-        Assert.True(CatalogCategoryInfo.TryParse(key, out var category));
-        Assert.Equal(CatalogCategory.HeroImage, category);
-    }
-
-    [Fact]
-    public void ExportPathKeepsCategoryHeroAndSkin()
-    {
-        var ahri = new CatalogHero("Ahri", "ahri", 103, CatalogHeroKind.Champion);
-        var skin05 = new CatalogSkinLabel("皮肤 05 Challenger Ahri", "skin05", 103005, 103, true);
-        var entry = new CatalogEntry(1,
-            "assets/characters/ahri/skins/skin05/particles/ahri_base_trail_01.tex",
-            @"D:\x\Ahri.wad.client", CatalogCategory.HeroAsset, 1, 1, 100, 1);
-
-        Assert.Equal(Path.Combine("英雄资源", "ahri", "skin05", "particles", "ahri_base_trail_01.tex"),
-            CatalogPaths.ExportPathOf(entry, ahri, skin05));
-
-        // No skin: the file keeps the rest of its own folders under the hero.
-        var loose = entry with { Path = "assets/characters/ahri/hud/ahri_circle_0.tex", Category = CatalogCategory.HeroImage };
-        Assert.Equal(Path.Combine("英雄图像", "ahri", "hud", "ahri_circle_0.tex"),
-            CatalogPaths.ExportPathOf(loose, ahri, null));
-
-        // A group the tables could not name still exports under its folder, not under "unnamed".
-        var folder = new CatalogHero("zedshadow", "zedshadow", 0, CatalogHeroKind.Folder);
-        Assert.Equal(Path.Combine("英雄资源", "zedshadow", "particles", "x.tex"),
-            CatalogPaths.ExportPathOf(entry with { Path = "assets/characters/zedshadow/particles/x.tex" }, folder, null));
-
-        Assert.Equal(Path.Combine("英雄资源", "未指派", "particles", "x.tex"),
-            CatalogPaths.ExportPathOf(entry with { Path = "particles/x.tex" }, null, null));
     }
 
     [Fact]
@@ -366,8 +652,8 @@ public class CatalogTests
             "assets/characters/ahri/skins/base/particles/ahri_base_trail_01.tex",
             "assets/characters/ahri/skins/base/particles/ahri_base_smoke.tex",
             "assets/sounds/wwise2016/vo/en_us/characters/ahri/skins/base/ahri_base_vo.bnk",
-            "assets/maps/sr/map11/hibiki/floor.mapgeo",
             "plugins/rcp-be-lol-game-data/global/default/v1/champion-icons/103.png",
+            "assets/maps/sr/map11/hibiki/floor.mapgeo",
             "some/path/unknown.bin",
         };
 
@@ -376,35 +662,50 @@ public class CatalogTests
             hashes = archive.ReadEntries(null).Select(entry => entry.Hash).Distinct().Take(paths.Length).ToList();
         Assert.Equal(paths.Length, hashes.Count);
 
-        var names = NameTable.FromMap(hashes.Select((hash, index) => (Hash: hash, Path: paths[index]))
-            .ToDictionary(pair => pair.Hash, pair => pair.Path));
+        // Paths the wad does not carry still sit in the name table, so a row's name index is never
+        // its row number; the anchor has to be decoded through that index.
+        var padded = hashes.Select((hash, index) => (Hash: hash, Path: paths[index]))
+            .ToDictionary(pair => pair.Hash, pair => pair.Path);
+        for (var i = 0; i < 8; i++)
+        {
+            var path = $"assets/zzz/padding{i:00}.txt";
+            padded[PathHashing.Compute(path)] = path;
+        }
+
+        var names = NameTable.FromMap(padded);
         var summary = new WadSummary(wadPath!, "Ahri.wad.client", "Ahri.wad.client",
             new FileInfo(wadPath!).Length, hashes.Count, 0, 0, new Dictionary<string, int>());
 
         var catalog = AssetCatalog.Build(new[] { summary }, names, Overrides(), Tables());
 
-        // Every entry of the wad is a row; the named ones are classified, the rest stay unclassified.
-        Assert.True(catalog.Count > paths.Length);
-        Assert.Equal(catalog.Count - paths.Length + 1, catalog.CountOf(CatalogCategory.Unclassified));
-        Assert.Equal(2, catalog.CountOf(CatalogCategory.HeroAsset));
-        Assert.Equal(1, catalog.CountOf(CatalogCategory.HeroAudio));
-        Assert.Equal(1, catalog.CountOf(CatalogCategory.HeroImage));
-        Assert.Equal(1, catalog.CountOf(CatalogCategory.Map));
+        // Only the paths a section owns become rows; the two others are left out.
+        Assert.Equal(4, catalog.Count);
+        Assert.Equal(4, catalog.CountOf(CatalogSection.Champion));
+        Assert.Equal(0, catalog.CountOf(CatalogSection.Skin));
 
         var hits = catalog.Search("ahri_base_trail", 10);
         Assert.Equal(1, hits.Total);
         Assert.Equal(paths[0], hits.Entries[0].Path);
-        Assert.Equal(CatalogCategory.HeroAsset, hits.Entries[0].Category);
+        Assert.Equal(CatalogSection.Champion, hits.Entries[0].Section);
+        Assert.Equal("Ahri", catalog.Groups[hits.Entries[0].Group].Label);
 
         // The blob scan is case insensitive, and a hit is reported once per path.
         Assert.Equal(1, catalog.Search("AHRI_BASE_TRAIL", 10).Total);
         Assert.Equal(3, catalog.Search("ahri_base", 10).Total);   // both textures and the voice bank
+
+        // The entity anchor is the folder every file of the entity shares, so exports stay short.
+        var entry = catalog.EntriesOf(hits.Entries[0].Group, hits.Entries[0].Entity)
+            .First(item => item.Hash == hits.Entries[0].Hash);
+        Assert.Equal("ahri_base_trail_01.tex",
+            CatalogPaths.RelativeOf(entry.Path, catalog.Entities[entry.Entity].Anchor));
+        Assert.Equal("assets/characters/ahri/skins/base/particles/", catalog.Entities[entry.Entity].Anchor);
     }
 
     [Fact]
-    public void UnclassifiedIsTheLastCategory()
+    public void SectionListIsStable()
     {
-        Assert.Equal(CatalogCategory.Unclassified, CatalogCategoryInfo.All[^1].Category);
-        Assert.All(CatalogCategoryInfo.All, info => Assert.False(string.IsNullOrWhiteSpace(info.Folder)));
+        Assert.Equal(CatalogSection.Champion, CatalogSectionInfo.All[0].Section);
+        Assert.All(CatalogSectionInfo.All, info => Assert.False(string.IsNullOrWhiteSpace(info.Folder)));
+        Assert.Equal(CatalogSectionInfo.All.Count, CatalogSectionInfo.All.Select(info => info.Display).Distinct().Count());
     }
 }

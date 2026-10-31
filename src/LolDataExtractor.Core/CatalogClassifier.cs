@@ -1,511 +1,425 @@
 namespace LolDataExtractor.Core;
 
 /// <summary>
-/// Turns an asset path into a bucket, a hero and a skin. The client tables decide who is who;
-/// folder names are only trusted as a guess, and the user's overrides always win.
+/// The groups and entities of one catalog build. Both the client tables and the path rules register
+/// into it, so a path reached either way lands on the same node.
+/// </summary>
+internal sealed class CatalogNodes
+{
+    private readonly List<CatalogGroup> _groups = new();
+    private readonly List<CatalogEntity> _entities = new();
+    private readonly Dictionary<string, int> _groupKeys = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, int> _entityKeys = new(StringComparer.OrdinalIgnoreCase);
+
+    public IReadOnlyList<CatalogGroup> Groups => _groups;
+
+    public IReadOnlyList<CatalogEntity> Entities => _entities;
+
+    /// <summary>Index of a group, creating it when the section does not have it yet.</summary>
+    public int Group(CatalogSection section, string label, string? detail = null, byte rank = 0, string? folder = null)
+    {
+        var name = CatalogPaths.SafeFolderOf(string.IsNullOrWhiteSpace(folder) ? label : folder);
+        var key = (int)section + "|" + name;
+        if (_groupKeys.TryGetValue(key, out var existing)) return existing;
+
+        var index = _groups.Count;
+        if (index >= ushort.MaxValue) return 0;
+        _groups.Add(new CatalogGroup(section, label, name, detail, rank));
+        _groupKeys[key] = index;
+        return index;
+    }
+
+    /// <summary>Index of an entity inside a group, creating it when the group does not have it yet.</summary>
+    public int Entity(int group, string label, string folder, int rank, string? detail = null)
+    {
+        var name = CatalogPaths.SafeFolderOf(folder);
+        var key = group + "|" + name;
+        if (_entityKeys.TryGetValue(key, out var existing)) return existing;
+
+        var index = _entities.Count;
+        if (index >= ushort.MaxValue) return 0;
+        _entities.Add(new CatalogEntity(group, label, name, detail, rank));
+        _entityKeys[key] = index;
+        return index;
+    }
+}
+
+/// <summary>
+/// Turns an asset path into a section, a group and an entity. What the client tables say always wins
+/// (it is applied before this class runs); the rules below cover the game archives and the client
+/// paths the tables do not name. A path no rule claims stays out of the catalog.
 /// </summary>
 internal sealed class CatalogClassifier
 {
+    private const int CommonRank = 10000;
+    private const int IconRank = 10001;
+    private const int DataRank = 10002;
+    private const int VoiceRank = 10003;
+    private const int SfxRank = 10004;
+    private const int AudioRank = 10005;
+
     private readonly CatalogTables _tables;
     private readonly CatalogOverrides _overrides;
     private readonly IReadOnlyList<CatalogRule> _rules;
-    private readonly List<CatalogHero> _heroes = new();
-    private readonly List<CatalogSkinLabel> _skins = new();
-    private readonly Dictionary<int, ushort> _heroByChampion = new();
-    private readonly Dictionary<string, ushort> _heroByFolder = new(StringComparer.OrdinalIgnoreCase);
-    private readonly Dictionary<string, ushort> _skinByKey = new(StringComparer.OrdinalIgnoreCase);
+    private readonly CatalogNodes _nodes;
+    private readonly Dictionary<string, int> _championGroups = new(StringComparer.OrdinalIgnoreCase);
 
-    public CatalogClassifier(CatalogTables tables, CatalogOverrides overrides)
+    public CatalogClassifier(CatalogTables tables, CatalogOverrides overrides, CatalogNodes nodes)
     {
         _tables = tables;
         _overrides = overrides;
+        _nodes = nodes;
         _rules = overrides.RulesBySpecificity();
-
-        // Index 0 is "no hero": unmatched entries still need a slot.
-        _heroes.Add(new CatalogHero("未指派", string.Empty, 0, CatalogHeroKind.Folder));
-        _skins.Add(new CatalogSkinLabel("未指派", string.Empty, 0, 0, false));
-
-        foreach (var champion in tables.Champions) RegisterChampion(champion);
     }
 
-    public CatalogTables Tables => _tables;
+    public CatalogNodes Nodes => _nodes;
 
-    public IReadOnlyList<CatalogHero> Heroes => _heroes;
+    /// <summary>Place of one path in the tree; false when no section owns it.</summary>
+    public bool TryAssign(string path, out CatalogPlacement placement)
+    {
+        placement = default;
+        if (string.IsNullOrEmpty(path)) return false;
 
-    public IReadOnlyList<CatalogSkinLabel> Skins => _skins;
+        var lowered = path.ToLowerInvariant();
+        return lowered.StartsWith("plugins/", StringComparison.Ordinal)
+            ? TryAssignClient(lowered, out placement)
+            : TryAssignGame(lowered, out placement);
+    }
 
     /// <summary>
-    /// Classifies one entry. Returns false when an override hides it; the out values are only
-    /// meaningful when it returns true.
+    /// Applies the hand written rules. Returns false when the entry is hidden; otherwise the
+    /// placement may be moved to another section, group or entity.
     /// </summary>
-    public bool Classify(string path, ulong hash, out CatalogCategory category, out ushort hero, out ushort skin)
+    public bool Apply(ulong hash, string path, ref CatalogPlacement placement)
     {
-        ClassifyAuto(path, out category, out hero, out skin);
-
-        if (_overrides.EntryOf(hash) is { } entry)
+        var entry = _overrides.EntryOf(hash);
+        CatalogRule? rule = null;
+        foreach (var candidate in _rules)
         {
-            if (entry.Hidden) return false;
-            if (CatalogCategoryInfo.TryParse(entry.Category, out var pinned)) category = pinned;
-            hero = HeroFromLabel(entry.Champion, hero);
-            skin = SkinFromLabel(hero, entry.Skin, skin);
-        }
-
-        foreach (var rule in _rules)
-        {
-            if (!path.StartsWith(rule.PathPrefix, StringComparison.OrdinalIgnoreCase)) continue;
-            if (rule.Hidden) return false;
-            if (CatalogCategoryInfo.TryParse(rule.Category, out var pinned)) category = pinned;
-            hero = HeroFromLabel(rule.Champion, hero);
-            skin = SkinFromLabel(hero, rule.Skin, skin);
+            if (!path.StartsWith(candidate.PathPrefix, StringComparison.OrdinalIgnoreCase)) continue;
+            rule = candidate;
             break;
         }
 
-        return true;
-    }
+        if (entry is null && rule is null) return true;
+        if (entry?.Hidden == true || rule?.Hidden == true) return false;
 
-    // ── hero and skin bookkeeping ────────────────────────────────────────────────────────────
+        var sectionText = entry?.Section ?? rule?.Section;
+        var groupText = entry?.Group ?? rule?.Group;
+        var entityText = entry?.Entity ?? rule?.Entity;
+        if (string.IsNullOrWhiteSpace(sectionText) && string.IsNullOrWhiteSpace(groupText) && string.IsNullOrWhiteSpace(entityText))
+            return true;
 
-    private ushort RegisterChampion(CatalogChampion champion)
-    {
-        if (_heroByChampion.TryGetValue(champion.Id, out var existing)) return existing;
-        var index = AddHero(new CatalogHero(champion.Label, champion.Alias.ToLowerInvariant(), champion.Id, CatalogHeroKind.Champion));
-        _heroByChampion[champion.Id] = index;
-        _heroByFolder[champion.Alias] = index;
-        return index;
-    }
+        var automaticGroup = _nodes.Groups[placement.Group];
+        var section = automaticGroup.Section;
+        if (CatalogSectionInfo.TryParse(sectionText, out var parsed)) section = parsed;
 
-    private ushort AddHero(CatalogHero hero)
-    {
-        if (_heroes.Count >= ushort.MaxValue) return 0;
-        _heroes.Add(hero);
-        return (ushort)(_heroes.Count - 1);
-    }
+        var groupLabel = string.IsNullOrWhiteSpace(groupText) ? automaticGroup.Label : groupText.Trim();
+        var groupDetail = automaticGroup.Detail;
+        var groupRank = automaticGroup.Rank;
 
-    /// <summary>Hero of a directory below <c>characters/</c>, guessing when the name is not an alias.</summary>
-    private ushort HeroForFolder(string? folder)
-    {
-        if (string.IsNullOrWhiteSpace(folder)) return 0;
-        if (_heroByFolder.TryGetValue(folder, out var cached)) return cached;
-
-        ushort index;
-        if (_tables.TryGuessChampion(folder, out var champion, out var guessed))
+        // A champion alias typed by hand lands on the table's own label, not on the typed casing.
+        if (section == CatalogSection.Champion && _tables.TryGetChampionByAlias(groupLabel, out var champion))
         {
-            // A guessed folder keeps its own node: "Zed shadow" stays next to Zed instead of being
-            // mixed into his assets, and can be moved by hand.
-            index = guessed
-                ? AddHero(new CatalogHero($"{champion.Label} · {folder}", folder.ToLowerInvariant(), champion.Id, CatalogHeroKind.Guessed))
-                : RegisterChampion(champion);
+            groupLabel = champion.Alias;
+            groupDetail = CatalogTables.DetailOf(champion);
+            groupRank = 0;
+        }
+
+        var group = _nodes.Group(section, groupLabel, groupDetail, groupRank,
+            CatalogPaths.SafeFolderOf(groupLabel));
+
+        int entity;
+        if (!string.IsNullOrWhiteSpace(entityText))
+        {
+            var label = entityText.Trim();
+            entity = _nodes.Entity(group, label, CatalogPaths.SafeFolderOf(label), 0);
+        }
+        else if (group == placement.Group && section == automaticGroup.Section)
+        {
+            entity = placement.Entity;
         }
         else
         {
-            index = AddHero(new CatalogHero(folder, folder.ToLowerInvariant(), 0, CatalogHeroKind.Folder));
+            var automaticEntity = _nodes.Entities[placement.Entity];
+            entity = _nodes.Entity(group, automaticEntity.Label, automaticEntity.Folder, automaticEntity.Rank, automaticEntity.Detail);
         }
 
-        _heroByFolder[folder] = index;
-        return index;
+        placement = new CatalogPlacement(group, entity);
+        return true;
     }
 
-    private ushort HeroForChampionId(int id)
+    // ── client archives ─────────────────────────────────────────────────────────────────────
+
+    private bool TryAssignClient(string path, out CatalogPlacement placement)
     {
-        if (id <= 0) return 0;
-        if (_heroByChampion.TryGetValue(id, out var index)) return index;
-        if (!_tables.TryGetChampionById(id, out var champion)) return 0;
-        return RegisterChampion(champion);
+        placement = default;
+        const string prefix = "plugins/rcp-be-lol-game-data/global/";
+        if (!path.StartsWith(prefix, StringComparison.Ordinal)) return false;
+
+        var rest = path[prefix.Length..];
+        var slash = rest.IndexOf('/');
+        if (slash < 0) return false;
+        var body = rest[(slash + 1)..];
+
+        // v1/champions/<id>.json: the champion's own data, English and Chinese copies both land here.
+        if (body.StartsWith("v1/champions/", StringComparison.Ordinal) && body.EndsWith(".json", StringComparison.Ordinal))
+            return ChampionEntity(LeadingNumber(FileNameOf(body)), DataRank, "Data", "data", out placement);
+
+        // v1/champion-icons/<id>.png: the square portrait used in the client.
+        if (body.StartsWith("v1/champion-icons/", StringComparison.Ordinal))
+            return ChampionEntity(LeadingNumber(FileNameOf(body)), IconRank, "Icon", "icon", out placement);
+
+        // v1/champion-chroma-images/<championId>/<chromaId>.png: a chroma belongs to its skin.
+        if (body.StartsWith("v1/champion-chroma-images/", StringComparison.Ordinal))
+        {
+            var chroma = LeadingNumber(FileNameOf(body));
+            if (_tables.TryGetSkinOfChroma(chroma, out var skin))
+            {
+                placement = _tables.SkinTarget(_nodes, skin);
+                return true;
+            }
+
+            return ChampionEntity(chroma / 1000, IconRank, "Icon", "icon", out placement);
+        }
+
+        // v1/champion-ban-vo, v1/champion-choose-vo, v1/champion-sfx-audios: champion voice clips.
+        if (body.StartsWith("v1/champion-ban-vo/", StringComparison.Ordinal)
+            || body.StartsWith("v1/champion-choose-vo/", StringComparison.Ordinal)
+            || body.StartsWith("v1/champion-sfx-audios/", StringComparison.Ordinal))
+            return ChampionEntity(LeadingNumber(FileNameOf(body)), AudioRank, "Audio", "audio", out placement);
+
+        if (body.StartsWith("assets/characters/", StringComparison.Ordinal) || body.StartsWith("characters/", StringComparison.Ordinal))
+            return TryAssignChampion(body, out placement);
+
+        if (body.StartsWith("assets/items/", StringComparison.Ordinal)) return TryAssignItem(body, out placement);
+        if (body.StartsWith("data/spells/", StringComparison.Ordinal)) return TryAssignSpell(body, out placement);
+
+        return false;
     }
 
-    /// <summary>Override text: a champion alias, a free label, or empty to keep the automatic hero.</summary>
-    private ushort HeroFromLabel(string? label, ushort fallback)
-    {
-        if (string.IsNullOrWhiteSpace(label)) return fallback;
-        var text = label.Trim();
-        if (_tables.TryGetChampionByAlias(text, out var champion)) return RegisterChampion(champion);
+    // ── game archives ───────────────────────────────────────────────────────────────────────
 
-        if (_heroByFolder.TryGetValue(text, out var existing)) return existing;
-        return AddHero(new CatalogHero(text, CatalogPaths.SafeFolderOf(text), 0, CatalogHeroKind.Folder));
+    private bool TryAssignGame(string path, out CatalogPlacement placement)
+    {
+        placement = default;
+        if (path.StartsWith("assets/sounds/", StringComparison.Ordinal)) return TryAssignSound(path, out placement);
+
+        if (path.StartsWith("assets/characters/", StringComparison.Ordinal)
+            || path.StartsWith("characters/", StringComparison.Ordinal)
+            || path.StartsWith("data/characters/", StringComparison.Ordinal))
+            return TryAssignChampion(path, out placement);
+
+        if (path.StartsWith("assets/items/", StringComparison.Ordinal)
+            || path.StartsWith("data/items/", StringComparison.Ordinal))
+            return TryAssignItem(path, out placement);
+
+        if (path.StartsWith("assets/perks/", StringComparison.Ordinal)
+            || path.StartsWith("data/perks/", StringComparison.Ordinal))
+            return TryAssignPerk(path, out placement);
+
+        if (path.StartsWith("assets/spells/", StringComparison.Ordinal)
+            || path.StartsWith("data/spells/", StringComparison.Ordinal))
+            return TryAssignSpell(path, out placement);
+
+        return false;
     }
 
-    private ushort SkinFromLabel(ushort hero, string? label, ushort fallback)
+    private bool TryAssignSound(string path, out CatalogPlacement placement)
     {
-        if (string.IsNullOrWhiteSpace(label)) return fallback;
-        return SkinFor(hero, _heroes[hero].Folder, label.Trim());
+        placement = default;
+        var voice = path.Contains("/vo/", StringComparison.Ordinal);
+        var sfx = path.Contains("/sfx/", StringComparison.Ordinal);
+        if (!voice && !sfx) return false;
+
+        var folder = CatalogTables.ChampionFolderOf(path);
+        if (folder is null) return false;
+
+        var group = ChampionGroup(folder.ToLowerInvariant());
+        if (group < 0) return false;
+
+        var entity = voice
+            ? _nodes.Entity(group, "Voice", "voice", VoiceRank)
+            : _nodes.Entity(group, "Sfx", "sfx", SfxRank);
+        placement = new CatalogPlacement(group, entity);
+        return true;
     }
 
-    /// <summary>Skin of one champion folder; the tables decide the name, the rest is the folder.</summary>
-    private ushort SkinFor(ushort hero, string championFolder, string skinFolder)
+    private bool TryAssignChampion(string path, out CatalogPlacement placement)
     {
-        if (string.IsNullOrWhiteSpace(skinFolder)) return 0;
+        placement = default;
+        var folder = CatalogTables.ChampionFolderOf(path);
+        if (folder is null) return false;
 
-        var key = hero + "|" + skinFolder;
-        if (_skinByKey.TryGetValue(key, out var cached)) return cached;
+        var championFolder = folder.ToLowerInvariant();
+        var group = ChampionGroup(championFolder);
+        if (group < 0) return false;
 
-        var championId = _heroes[hero].ChampionId;
+        var skinFolder = CatalogTables.SkinFolderIn(path);
+        int entity;
+        if (!string.IsNullOrEmpty(skinFolder))
+        {
+            entity = ChampionSkinEntity(group, championFolder, skinFolder.ToLowerInvariant());
+        }
+        else if (path.Contains("/icons2d/", StringComparison.Ordinal))
+        {
+            entity = _nodes.Entity(group, "Icon", "icon", IconRank);
+        }
+        else if (path.StartsWith("data/", StringComparison.Ordinal))
+        {
+            entity = _nodes.Entity(group, "Data", "data", DataRank);
+        }
+        else
+        {
+            entity = _nodes.Entity(group, "Common", "common", CommonRank);
+        }
+
+        placement = new CatalogPlacement(group, entity);
+        return true;
+    }
+
+    private int ChampionSkinEntity(int group, string championFolder, string skinFolder)
+    {
+        CatalogChampion? champion = null;
+        if (_tables.TryGuessChampion(championFolder, out var found, out _)) champion = found;
+
         CatalogSkin? skin = null;
-        if (!_tables.TryGetSkinByFolder(championFolder, skinFolder, out skin!))
-        {
-            if (championId > 0 && TryNumericSkinId(championId, skinFolder, out var id))
-                _tables.TryGetSkin(id, out skin!);
-        }
+        if (_tables.TryGetSkinByFolder(championFolder, skinFolder, out var known))
+            skin = known;
+        else if (champion is not null
+                 && CatalogTables.TryNumericSkinId(champion.Id, skinFolder, out var id)
+                 && _tables.TryGetSkin(id, out var byId))
+            skin = byId;
 
-        var folder = skinFolder.ToLowerInvariant();
-        var label = LabelOf(folder, skin);
-        var index = AddSkin(new CatalogSkinLabel(label, folder, skin?.Id ?? 0, championId, skin is not null));
-        _skinByKey[key] = index;
-        return index;
+        // The base skin is the champion itself, so it keeps the plain "Base" label instead of the
+        // champion's name ("Ahri" would read like a second champion node).
+        var isBase = string.Equals(skinFolder, "base", StringComparison.OrdinalIgnoreCase);
+        var label = isBase ? "Base" : skin?.Name ?? CatalogTables.SkinFolderLabel(skinFolder);
+        var rank = isBase ? 0 : skin is null ? 900 : skin.Id % 1000;
+        return _nodes.Entity(group, label, skinFolder, rank, skin?.Description);
     }
 
-    private ushort AddSkin(CatalogSkinLabel skin)
+    private int ChampionGroup(string folder)
     {
-        if (_skins.Count >= ushort.MaxValue) return 0;
-        _skins.Add(skin);
-        return (ushort)(_skins.Count - 1);
+        if (_championGroups.TryGetValue(folder, out var cached)) return cached;
+
+        // Only the champions the client tables name become groups: a folder the tables do not know
+        // ("zedshadow", "tft18_ahri", "pet…") used to show up as a guess marked "变体"; those stay
+        // out of the catalog entirely.
+        var group = -1;
+        if (_tables.TryGuessChampion(folder, out var champion, out var guessed) && !guessed)
+            group = _nodes.Group(CatalogSection.Champion, champion.Alias, CatalogTables.DetailOf(champion),
+                0, folder.ToLowerInvariant());
+
+        _championGroups[folder] = group;
+        return group;
     }
 
-    private static string LabelOf(string folder, CatalogSkin? skin)
+    private bool ChampionEntity(int championId, int rank, string label, string folder, out CatalogPlacement placement)
     {
-        if (string.Equals(folder, "base", StringComparison.OrdinalIgnoreCase)) return "基础皮肤";
-        if (skin is null) return folder;
+        placement = default;
+        if (championId <= 0 || !_tables.TryGetChampionById(championId, out var champion)) return false;
 
-        var number = skin.Id % 1000;
-        return number == 0 ? "基础皮肤" : $"皮肤 {number:D2} {skin.Name}";
-    }
-
-    /// <summary>Skin number of a folder name inside one champion, validated against the tables.</summary>
-    private static bool TryNumericSkinId(int championId, string folder, out int id)
-    {
-        id = 0;
-        if (string.Equals(folder, "base", StringComparison.OrdinalIgnoreCase))
-        {
-            id = championId * 1000;
-            return true;
-        }
-
-        if (!folder.StartsWith("skin", StringComparison.OrdinalIgnoreCase)) return false;
-        var digits = folder[4..];
-        if (digits.Length == 0 || !digits.All(char.IsAsciiDigit)) return false;
-        if (!int.TryParse(digits, out var number) || number <= 0 || number > 999) return false;
-
-        id = championId * 1000 + number;
+        var group = _nodes.Group(CatalogSection.Champion, champion.Label, CatalogTables.DetailOf(champion), 0,
+            champion.Alias.ToLowerInvariant());
+        var entity = _nodes.Entity(group, label, folder, rank);
+        placement = new CatalogPlacement(group, entity);
         return true;
     }
 
-    /// <summary>Skin folder name for a numeric skin id, so client images land in the same group.</summary>
-    private static string SkinFolderOfId(int skinId)
+    private bool TryAssignItem(string path, out CatalogPlacement placement)
     {
-        var number = skinId % 1000;
-        return number == 0 ? "base" : $"skin{number:D2}";
+        placement = default;
+        var id = ItemIdOf(path);
+        if (id <= 0 || !_tables.TryGetItem(id, out var item)) return false;
+        placement = _tables.ItemTarget(_nodes, item);
+        return true;
     }
 
-    // ── path rules ──────────────────────────────────────────────────────────────────────────
-
-    private void ClassifyAuto(string path, out CatalogCategory category, out ushort hero, out ushort skin)
+    private static int ItemIdOf(string path)
     {
-        category = CatalogCategory.Unclassified;
-        hero = 0;
-        skin = 0;
-        if (path.Length == 0) return;
+        string rest;
+        if (path.StartsWith("assets/items/", StringComparison.Ordinal)) rest = path["assets/items/".Length..];
+        else if (path.StartsWith("data/items/", StringComparison.Ordinal)) rest = path["data/items/".Length..];
+        else return 0;
 
-        if (path.StartsWith("plugins/", StringComparison.OrdinalIgnoreCase)) ClassifyClient(path, out category, out hero, out skin);
-        else ClassifyGame(path, out category, out hero, out skin);
-
-        // A bucket without a champion still needs a second level: group it by the folder it lives in
-        // (ux, loot, materials, sr, …) instead of dumping tens of thousands of files into one node.
-        if (hero == 0)
-        {
-            var (kind, sub) = GroupFoldersOf(path);
-            if (kind.Length > 0) hero = HeroForFolder(kind);
-            if (sub.Length > 0 && skin == 0) skin = SkinFor(hero, _heroes[hero].Folder, sub);
-        }
-    }
-
-    /// <summary>
-    /// Two folder levels that name the group of an entry: the kind folder one or two levels below
-    /// <c>assets/</c>, <c>data/</c> or <c>v1/</c> (the sound bank for sound assets), then the first
-    /// folder after it. Numeric folders such as item or map ids become the sub level, so a bucket
-    /// never ends up as thousands of nodes named after an id.
-    /// </summary>
-    private static (string Kind, string Sub) GroupFoldersOf(string path)
-    {
-        var rest = CatalogPaths.StripPluginPrefix(path);
         var segments = rest.Split('/', StringSplitOptions.RemoveEmptyEntries);
-        if (segments.Length == 0) return (string.Empty, string.Empty);
+        if (segments.Length == 0) return 0;
 
-        var first = segments[0];
-        var start = 0;
-        var rootToken = string.Empty;
-        if (first.Equals("assets", StringComparison.OrdinalIgnoreCase)
-            || first.Equals("data", StringComparison.OrdinalIgnoreCase)
-            || first.Equals("v1", StringComparison.OrdinalIgnoreCase)
-            || first.Equals("characters", StringComparison.OrdinalIgnoreCase))
+        // assets/items/icons2d/<id>_name.ext, data/items/spells/<id>active.luabin64, assets/items/<id>/…
+        if (segments[0] is "icons2d" or "spells") return LeadingNumber(segments[^1]);
+        return LeadingNumber(segments[0]);
+    }
+
+    private bool TryAssignPerk(string path, out CatalogPlacement placement)
+    {
+        placement = default;
+
+        if (path.StartsWith("assets/perks/styles/", StringComparison.Ordinal))
         {
-            rootToken = segments.Length > 1 ? TrimUnitName(segments[1]) : string.Empty;
-            start = 2;
-            if (first.Equals("assets", StringComparison.OrdinalIgnoreCase)
-                && segments.Length > 3
-                && segments[1].Equals("sounds", StringComparison.OrdinalIgnoreCase))
+            var rest = path["assets/perks/styles/".Length..].Split('/', StringSplitOptions.RemoveEmptyEntries);
+            if (rest.Length == 0) return false;
+
+            string styleToken;
+            string? perkFolder = null;
+            if (rest.Length == 1)
             {
-                // assets/sounds/wwise2016/<bank>/… : the bank is the kind.
-                rootToken = "sounds";
-                start = 3;
-            }
-        }
-
-        // The last segment is the file itself; only folder segments name a group.
-        var folders = segments.Length - 1;
-        var kind = string.Empty;
-        var sub = string.Empty;
-        var pendingNumber = string.Empty;
-        for (var i = start; i < folders; i++)
-        {
-            var segment = segments[i];
-            if (IsNumeric(segment))
-            {
-                if (kind.Length > 0 && sub.Length == 0) sub = segment;
-                else if (kind.Length == 0) pendingNumber = segment;
-                continue;
-            }
-
-            if (kind.Length == 0) kind = segment;
-            else if (sub.Length == 0) sub = segment;
-        }
-
-        if (kind.Length == 0)
-        {
-            kind = rootToken.Length > 0 ? rootToken : TrimUnitName(segments[^1]);
-            if (pendingNumber.Length > 0) sub = pendingNumber;
-        }
-
-        return (kind, sub);
-    }
-
-    private static bool IsNumeric(string text)
-    {
-        if (text.Length == 0) return false;
-        foreach (var c in text)
-            if (!char.IsAsciiDigit(c)) return false;
-        return true;
-    }
-
-    /// <summary>
-    /// A single file must not become its own node: "petdowsie_multi_skins_….bin" is one companion,
-    /// so the stem and the "multi" suffix are dropped from the group name.
-    /// </summary>
-    private static string TrimUnitName(string label)
-    {
-        var dot = label.LastIndexOf('.');
-        if (dot > 0) label = label[..dot];
-
-        var multi = label.IndexOf("_multi", StringComparison.OrdinalIgnoreCase);
-        return multi > 0 ? label[..multi] : label;
-    }
-
-    private void ClassifyGame(string path, out CatalogCategory category, out ushort hero, out ushort skin)
-    {
-        category = CatalogCategory.Unclassified;
-        hero = 0;
-        skin = 0;
-
-        if (path.StartsWith("assets/characters/", StringComparison.OrdinalIgnoreCase))
-        {
-            ClassifyCharacterPath(path, out category, out hero, out skin);
-            return;
-        }
-
-        if (path.StartsWith("assets/sounds/", StringComparison.OrdinalIgnoreCase))
-        {
-            ClassifySoundPath(path, out category, out hero, out skin);
-            return;
-        }
-
-        if (path.StartsWith("data/characters/", StringComparison.OrdinalIgnoreCase)
-            || path.StartsWith("characters/", StringComparison.OrdinalIgnoreCase))
-        {
-            category = CatalogCategory.HeroConfig;
-            var unit = CatalogTables.ChampionFolderOf(path) ?? Segment(path, 1) ?? string.Empty;
-            hero = HeroForFolder(TrimUnitName(unit));
-            skin = SkinFor(hero, _heroes[hero].Folder, CatalogTables.SkinFolderIn(path) ?? string.Empty);
-            return;
-        }
-
-        if (path.StartsWith("data/shared/", StringComparison.OrdinalIgnoreCase)
-            || path.StartsWith("assets/shared/", StringComparison.OrdinalIgnoreCase)
-            || path.StartsWith("data/particles/", StringComparison.OrdinalIgnoreCase)
-            || path.StartsWith("data/spells/", StringComparison.OrdinalIgnoreCase)
-            || path.StartsWith("shaders/", StringComparison.OrdinalIgnoreCase)
-            || path.StartsWith("shadercache", StringComparison.OrdinalIgnoreCase))
-        {
-            category = CatalogCategory.Shared;
-            return;
-        }
-
-        if (path.StartsWith("assets/maps/", StringComparison.OrdinalIgnoreCase)
-            || path.StartsWith("maps/", StringComparison.OrdinalIgnoreCase)
-            || path.StartsWith("levels/", StringComparison.OrdinalIgnoreCase)
-            || path.StartsWith("data/maps/", StringComparison.OrdinalIgnoreCase)
-            || path.StartsWith("data/levels/", StringComparison.OrdinalIgnoreCase))
-        {
-            category = CatalogCategory.Map;
-            return;
-        }
-
-        if (path.StartsWith("assets/items/", StringComparison.OrdinalIgnoreCase)
-            || path.StartsWith("data/items/", StringComparison.OrdinalIgnoreCase))
-        {
-            category = CatalogCategory.Item;
-            return;
-        }
-
-        if (path.StartsWith("assets/", StringComparison.OrdinalIgnoreCase)
-            || path.StartsWith("data/", StringComparison.OrdinalIgnoreCase)
-            || path.StartsWith("loadouts/", StringComparison.OrdinalIgnoreCase)
-            || path.StartsWith("ux/", StringComparison.OrdinalIgnoreCase)
-            || path.StartsWith("uiautoatlas/", StringComparison.OrdinalIgnoreCase)
-            || path.StartsWith("clientstates/", StringComparison.OrdinalIgnoreCase)
-            || path.StartsWith("patching/", StringComparison.OrdinalIgnoreCase)
-            || path.StartsWith("lcu/", StringComparison.OrdinalIgnoreCase)
-            || path.StartsWith("global/", StringComparison.OrdinalIgnoreCase)
-            || path.StartsWith("missions/", StringComparison.OrdinalIgnoreCase))
-        {
-            category = CatalogCategory.Interface;
-            return;
-        }
-
-        // Root files of a game wad: gameplay.*.bin and friends, i.e. interface data.
-        if (path.IndexOf('/') < 0) category = CatalogCategory.Interface;
-    }
-
-    private void ClassifyCharacterPath(string path, out CatalogCategory category, out ushort hero, out ushort skin)
-    {
-        var folder = CatalogTables.ChampionFolderOf(path);
-        hero = HeroForFolder(folder);
-        skin = SkinFor(hero, folder ?? string.Empty, CatalogTables.SkinFolderIn(path) ?? string.Empty);
-        category = IsImage(path) ? CatalogCategory.HeroImage : CatalogCategory.HeroAsset;
-    }
-
-    private void ClassifySoundPath(string path, out CatalogCategory category, out ushort hero, out ushort skin)
-    {
-        category = CatalogCategory.HeroAudio;
-        hero = 0;
-        skin = 0;
-
-        var folder = CatalogTables.ChampionFolderOf(path);
-        if (folder is not null)
-        {
-            hero = HeroForFolder(folder);
-            skin = SkinFor(hero, folder, CatalogTables.SkinFolderIn(path) ?? string.Empty);
-            return;
-        }
-
-        // Music, ambience and companion sounds are not tied to one champion.
-        category = CatalogCategory.Shared;
-    }
-
-    private void ClassifyClient(string path, out CatalogCategory category, out ushort hero, out ushort skin)
-    {
-        category = CatalogCategory.Interface;
-        hero = 0;
-        skin = 0;
-
-        if (!path.Contains("rcp-be-lol-game-data", StringComparison.OrdinalIgnoreCase)) return;
-
-        var rest = CatalogPaths.StripPluginPrefix(path);
-
-        if (rest.StartsWith("assets/characters/", StringComparison.OrdinalIgnoreCase))
-        {
-            ClassifyCharacterPath(rest, out category, out hero, out skin);
-            return;
-        }
-
-        if (rest.StartsWith("v1/champions/", StringComparison.OrdinalIgnoreCase))
-        {
-            category = CatalogCategory.HeroConfig;
-            hero = HeroForChampionId(LeadingNumber(FileNameOf(rest)));
-            return;
-        }
-
-        if (rest.StartsWith("v1/champion-", StringComparison.OrdinalIgnoreCase))
-        {
-            // Images are the ones that carry a skin or champion number in the path; the tables
-            // (champion-summary.json and friends) have none and stay under the interface bucket.
-            ResolveChampionByNumber(rest, out hero, out skin);
-            if (hero != 0) category = CatalogCategory.HeroImage;
-            return;
-        }
-
-        if (rest.StartsWith("v1/items", StringComparison.OrdinalIgnoreCase)
-            || rest.StartsWith("assets/items/", StringComparison.OrdinalIgnoreCase))
-        {
-            category = CatalogCategory.Item;
-            return;
-        }
-
-        if (rest.StartsWith("assets/maps/", StringComparison.OrdinalIgnoreCase))
-        {
-            category = CatalogCategory.Map;
-            return;
-        }
-
-        if (rest.StartsWith("assets/", StringComparison.OrdinalIgnoreCase)
-            || rest.StartsWith("v1/", StringComparison.OrdinalIgnoreCase))
-        {
-            category = CatalogCategory.Interface;
-        }
-    }
-
-    /// <summary>
-    /// Client image paths carry the skin id in the file name (<c>…/103/103001.jpg</c>) or the
-    /// champion id alone (<c>…/champion-icons/103.png</c>).
-    /// </summary>
-    private void ResolveChampionByNumber(string rest, out ushort hero, out ushort skin)
-    {
-        hero = 0;
-        skin = 0;
-
-        var number = LeadingNumber(FileNameOf(rest));
-        if (number >= 1000)
-        {
-            hero = HeroForChampionId(number / 1000);
-            skin = SkinFor(hero, _heroes[hero].Folder, SkinFolderOfId(number));
-            return;
-        }
-
-        if (number > 0)
-        {
-            hero = HeroForChampionId(number);
-            return;
-        }
-
-        // Fall back to the first numeric folder segment.
-        foreach (var segment in rest.Split('/'))
-        {
-            var value = LeadingNumber(segment);
-            if (value <= 0) continue;
-            if (value >= 1000)
-            {
-                hero = HeroForChampionId(value / 1000);
-                skin = SkinFor(hero, _heroes[hero].Folder, SkinFolderOfId(value));
+                styleToken = StemStyle(rest[0]);
             }
             else
             {
-                hero = HeroForChampionId(value);
+                styleToken = rest[0];
+                perkFolder = rest[1];
             }
 
-            return;
+            var style = _tables.TryGetPerkStyleByFolder(styleToken, out var known) ? known : null;
+            var label = style?.Name ?? Title(styleToken);
+            var group = _nodes.Group(CatalogSection.Perk, label, style?.Description, 0);
+            var entity = perkFolder is null
+                ? _nodes.Entity(group, "Icons", "icons", 1)
+                : PerkEntity(group, perkFolder);
+            placement = new CatalogPlacement(group, entity);
+            return true;
         }
+
+        if (path.StartsWith("assets/perks/statmods/", StringComparison.Ordinal))
+        {
+            var group = _nodes.Group(CatalogSection.Perk, "StatMods", "属性符文碎片", 1);
+            var entity = PerkEntity(group, StemStyle(FileNameOf(path)), "StatMods");
+            placement = new CatalogPlacement(group, entity);
+            return true;
+        }
+
+        if (path.StartsWith("assets/perks/icons2d/", StringComparison.Ordinal))
+        {
+            var group = _nodes.Group(CatalogSection.Perk, "Icons", null, 1);
+            var entity = PerkEntity(group, StemStyle(FileNameOf(path)), "Icons");
+            placement = new CatalogPlacement(group, entity);
+            return true;
+        }
+
+        return false;
     }
 
-    private static bool IsImage(string path)
+    private int PerkEntity(int group, string folder, string? fallback = null)
     {
-        var dot = path.LastIndexOf('.');
-        if (dot < 0) return false;
-        var extension = path.AsSpan(dot + 1);
-        return extension.Equals("jpg", StringComparison.OrdinalIgnoreCase)
-               || extension.Equals("jpeg", StringComparison.OrdinalIgnoreCase)
-               || extension.Equals("png", StringComparison.OrdinalIgnoreCase)
-               || extension.Equals("dds", StringComparison.OrdinalIgnoreCase)
-               || extension.Equals("tga", StringComparison.OrdinalIgnoreCase)
-               || extension.Equals("webp", StringComparison.OrdinalIgnoreCase)
-               || extension.Equals("svg", StringComparison.OrdinalIgnoreCase);
+        if (_tables.TryGetPerkByFolder(folder, out var perk))
+            return _nodes.Entity(group, perk.Name, CatalogPaths.SafeFolderOf(perk.Name), 0, perk.Description);
+
+        var label = fallback ?? folder;
+        return _nodes.Entity(group, label, CatalogPaths.SafeFolderOf(label), 0);
     }
+
+    private bool TryAssignSpell(string path, out CatalogPlacement placement)
+    {
+        placement = default;
+        var id = LeadingNumber(FileNameOf(path));
+        if (id <= 0 || !_tables.TryGetSpell(id, out var spell)) return false;
+        placement = _tables.SpellTarget(_nodes, spell);
+        return true;
+    }
+
+    // ── small helpers ───────────────────────────────────────────────────────────────────────
 
     private static string FileNameOf(string path)
     {
@@ -522,9 +436,15 @@ internal sealed class CatalogClassifier
         return int.TryParse(name.AsSpan(0, digits), out var value) ? value : 0;
     }
 
-    private static string? Segment(string path, int index)
+    /// <summary>"7204_resolve.tex" → "resolve", "darkharvest" → "darkharvest".</summary>
+    private static string StemStyle(string token)
     {
-        var segments = path.Split('/');
-        return index < segments.Length ? segments[index] : null;
+        var name = System.IO.Path.GetFileNameWithoutExtension(token);
+        var underscore = name.IndexOf('_');
+        if (underscore > 0) name = name[(underscore + 1)..];
+        return name;
     }
+
+    private static string Title(string token)
+        => token.Length == 0 ? token : char.ToUpperInvariant(token[0]) + token[1..];
 }

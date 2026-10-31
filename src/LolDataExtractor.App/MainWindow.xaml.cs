@@ -16,6 +16,23 @@ public partial class MainWindow : Window
 
     public MainViewModel ViewModel { get; }
 
+    /// <summary>Opens the project page in the default browser when the link in the about card is clicked.</summary>
+    private void AboutLink_RequestNavigate(object sender, System.Windows.Navigation.RequestNavigateEventArgs e)
+    {
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(e.Uri.AbsoluteUri)
+            {
+                UseShellExecute = true,
+            });
+            e.Handled = true;
+        }
+        catch (Exception ex)
+        {
+            ViewModel.Log("打开项目地址失败：" + ex.Message);
+        }
+    }
+
     public Task InitializeAsync(string? dataRoot) => ViewModel.InitializeAsync(dataRoot);
 
     /// <summary>Self test helper: switches to the named wad.</summary>
@@ -67,7 +84,7 @@ public partial class MainWindow : Window
     }
 
     /// <summary>Self test helper: switches the middle pane to the classified tree and expands it.</summary>
-    public async Task<bool> ShowCatalogAsync(string? select)
+    public async Task<bool> ShowCatalogAsync(string? select, string? scope = null)
     {
         // Set the mode that owns the picker, not the other one, or the box keeps showing "按 wad 浏览".
         ViewModel.BrowseMode = MainViewModel.BrowseModes[1];
@@ -86,6 +103,14 @@ public partial class MainWindow : Window
 
             hero.IsExpanded = true;
             await Task.WhenAll(hero.Children.Select(child => child.EnsureLoadedAsync()));
+
+            // "group" 停在组这一层，用来验收整组导出（会写出多个条目的文件）。
+            if (string.Equals(scope, "group", StringComparison.OrdinalIgnoreCase))
+            {
+                hero.IsSelected = true;
+                ViewModel.SelectedCatalogNode = hero;
+                return true;
+            }
 
             // The first skin of a group is often made of sub folders only, so walk down to a real file.
             foreach (var skin in hero.Children)

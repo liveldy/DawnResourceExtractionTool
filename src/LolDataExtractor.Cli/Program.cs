@@ -77,8 +77,8 @@ internal static class Program
                                               只导出二次解析后的媒体：贴图转 PNG，音频转 MP3
                                               其余条目（模型、数据等）不导出
               catalog [--root 路径] [--json 文件] [--bucket 名称] [--search 文字] [--limit N]
-                                              按英雄/皮肤把条目分类，输出各分类的条目数，
-                                              便于核对分类规则（--bucket 只看一类，
+                                              按客户端数据表把条目归到 英雄/皮肤/装备/符文/…，
+                                              输出各分类的条目数（--bucket 只看一类，
                                               --search 试搜路径，--json 存明细）
               hashes fetch [--token T] [--dir 目录] [--build]
                                               下载 CommunityDragon 哈希表（约 217MB，9 个分片）
@@ -92,7 +92,7 @@ internal static class Program
             --root 指到游戏 DATA 时只扫游戏包；指到安装根目录时，LeagueClient\plugins 下的
             客户端包（英雄/装备文本、头像、原画）一起列出。
 
-            类别取值: texture, model, audio, bin, text, shader, other
+            类别取值: texture, model, audio, video, bin, text, shader, other
             """);
     }
 
@@ -349,7 +349,7 @@ internal static class Program
     }
 
     /// <summary>
-    /// Builds the classified catalog and prints what landed in each bucket. This is the headless
+    /// Builds the classified catalog and prints what landed in each section. This is the headless
     /// check of the classification rules: the numbers here are what the tree shows.
     /// </summary>
     private static int Catalog(AppSettings settings, CommandLine parsed)
@@ -370,19 +370,34 @@ internal static class Program
         var catalog = AssetCatalog.Build(summaries, names, null, tables,
             new InlineProgress<string>(message => Console.WriteLine("  " + message)));
         timer.Stop();
-        Console.WriteLine($"分类索引：{catalog.Count:N0} 个条目，{catalog.Groups.Count:N0} 个分组，用时 {timer.Elapsed.TotalSeconds:F1}s");
+        Console.WriteLine($"分类索引：{catalog.Count:N0} 个条目，{catalog.Groups.Count(group => group.Count > 0):N0} 个组，用时 {timer.Elapsed.TotalSeconds:F1}s");
 
         var bucket = parsed.Get("bucket");
         var limit = parsed.GetInt("limit") ?? 15;
         var showAll = string.IsNullOrWhiteSpace(bucket);
-        foreach (var info in CatalogCategoryInfo.All)
+        CatalogSection? only = null;
+        if (!showAll)
         {
-            if (!showAll && CatalogCategoryInfo.TryParse(bucket, out var wanted) && wanted != info.Category) continue;
+            if (CatalogSectionInfo.TryParse(bucket, out var wanted)) only = wanted;
+            else Console.WriteLine($"没有这个分类：{bucket}（可用：{string.Join(" / ", CatalogSectionInfo.All.Select(info => info.Display))}）");
+        }
 
-            var count = catalog.CountOf(info.Category);
-            var heroes = catalog.GroupsOf(info.Category).Select(group => group.Hero).Distinct().Count();
-            var skins = catalog.GroupsOf(info.Category).Select(group => group.Skin).Distinct().Count(label => label != 0);
-            Console.WriteLine($"  {info.Display,-8}{count,10:N0} 个文件 · {heroes,5:N0} 个节点 · {skins,5:N0} 套皮肤   {info.Description}");
+        foreach (var info in CatalogSectionInfo.All)
+        {
+            if (only is { } filter && filter != info.Section) continue;
+
+            var count = catalog.CountOf(info.Section);
+            var groups = 0;
+            var entities = 0;
+            for (var i = 0; i < catalog.Groups.Count; i++)
+            {
+                var group = catalog.Groups[i];
+                if (group.Section != info.Section || group.Count == 0) continue;
+                groups++;
+                entities += catalog.EntitiesOf(i).Count;
+            }
+
+            Console.WriteLine($"  {info.Display,-6}{count,10:N0} 个文件 · {groups,5:N0} 个组 · {entities,6:N0} 个条目   {info.Description}");
         }
 
         // --search runs the same blob search the UI does, so a miss can be reproduced here.
@@ -393,60 +408,32 @@ internal static class Program
             Console.WriteLine();
             Console.WriteLine($"== 搜索「{search}」：{hits.Total:N0} 个命中，用时 {watch.ElapsedMilliseconds} ms");
             foreach (var entry in hits.Entries.Take(limit))
-                Console.WriteLine($"  {CatalogCategoryInfo.Of(entry.Category).Display}  {entry.Path}");
+                Console.WriteLine($"  {CatalogSectionInfo.Of(entry.Section).Display}  {entry.Path}");
         }
 
-        if (!showAll && CatalogCategoryInfo.TryParse(bucket, out var only))
+        if (only is { } section)
         {
             Console.WriteLine();
-            Console.WriteLine($"== {CatalogCategoryInfo.Of(only).Display} 的节点（前 {limit} 个）");
-            var nodeSizes = new Dictionary<int, int>();
-            foreach (var group in catalog.GroupsOf(only))
-                nodeSizes[group.Hero] = nodeSizes.GetValueOrDefault(group.Hero) + group.Count;
-            foreach (var (hero, size) in nodeSizes.OrderByDescending(pair => pair.Value).Take(limit))
-                Console.WriteLine($"{size,8:N0}  {catalog.Heroes[hero].Label}");
+            Console.WriteLine($"== {CatalogSectionInfo.Of(section).Display} 的组（前 {limit} 个）");
+            foreach (var group in catalog.GroupsOf(section).OrderByDescending(group => group.Count).Take(limit))
+                Console.WriteLine($"{group.Count,8:N0}  {Truncate(group.Label, 60)}");
         }
 
         Console.WriteLine();
-        Console.WriteLine("== 文件最多的 15 个分组");
-        foreach (var group in catalog.Groups.OrderByDescending(group => group.Count).Take(limit))
-        {
-            var hero = catalog.Heroes[group.Hero];
-            var skin = catalog.Skins[group.Skin];
-            var name = group.Skin == 0 ? hero.Label : $"{hero.Label} / {skin.Label}";
-            Console.WriteLine($"{group.Count,8:N0}  {CatalogCategoryInfo.Of(group.Bucket).Display} · {Truncate(name, 60)}");
-        }
-
-        var unclassified = catalog.EntriesOf(CatalogCategory.Unclassified);
-        if (unclassified.Count > 0)
-        {
-            Console.WriteLine();
-            Console.WriteLine($"== 未分类样例（共 {unclassified.Count:N0} 条）");
-            foreach (var entry in unclassified.Take(12)) Console.WriteLine("  " + entry.Path);
-        }
-
-        var guesses = catalog.Heroes.Where(hero => hero.Kind == CatalogHeroKind.Guessed).ToList();
-        var folders = catalog.Heroes.Where(hero => hero.Kind == CatalogHeroKind.Folder).ToList();
-        Console.WriteLine();
-        Console.WriteLine($"== 英雄节点 {catalog.Heroes.Count:N0} 个：确认 {catalog.Heroes.Count - guesses.Count - folders.Count:N0} · 推测 {guesses.Count:N0} · 未识别目录 {folders.Count:N0}");
-        foreach (var hero in guesses.Take(8)) Console.WriteLine("  推测 " + hero.Label);
-
-        var sizes = new int[catalog.Heroes.Count];
-        foreach (var group in catalog.Groups) sizes[group.Hero] += group.Count;
-        foreach (var hero in folders.OrderByDescending(hero => sizes[catalog.Heroes.ToList().IndexOf(hero)]).Take(8))
-            Console.WriteLine("  目录 " + hero.Label);
+        Console.WriteLine($"== 文件最多的 {limit} 个组");
+        foreach (var group in catalog.Groups.Where(group => group.Count > 0).OrderByDescending(group => group.Count).Take(limit))
+            Console.WriteLine($"{group.Count,8:N0}  {CatalogSectionInfo.Of(group.Section).Display} · {Truncate(group.Label, 60)}");
 
         var jsonPath = parsed.Get("json");
         if (jsonPath is not null)
         {
-            var details = CatalogCategoryInfo.All.ToDictionary(
+            var details = CatalogSectionInfo.All.ToDictionary(
                 info => info.Display,
-                info => catalog.EntriesOf(info.Category).Take(200000).Select(entry => new
+                info => catalog.EntriesOf(info.Section).Take(200000).Select(entry => new
                 {
                     path = entry.Path,
-                    hero = catalog.Heroes[entry.Hero].Label,
-                    heroKind = catalog.Heroes[entry.Hero].Kind.ToString(),
-                    skin = entry.Skin == 0 ? null : catalog.Skins[entry.Skin].Label,
+                    group = catalog.Groups[entry.Group].Label,
+                    entity = catalog.Entities[entry.Entity].Label,
                     wad = Path.GetFileName(entry.WadPath),
                     copies = entry.WadCount,
                     size = entry.Size,
