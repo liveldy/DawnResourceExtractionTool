@@ -13,14 +13,8 @@ public sealed record CatalogInfoEntry(
     string Wad,
     string Extension);
 
-/// <summary>
-/// The <c>info.json</c> written beside the files of one catalog entity: which node they belong to,
-/// where they came from and how big they are. An exported folder then explains itself even after it
-/// has been moved away from the tool.
-/// </summary>
-public sealed record CatalogInfoDocument(
-    string GeneratedAt,
-    string Tool,
+/// <summary>One catalog entity of an export: the node it belongs to, its folder and its files.</summary>
+public sealed record CatalogInfoEntity(
     string Section,
     string Group,
     string Entity,
@@ -30,10 +24,23 @@ public sealed record CatalogInfoDocument(
     long TotalBytes,
     IReadOnlyList<CatalogInfoEntry> Files);
 
-/// <summary>Name, name clash handling and serialization of the catalog export info file.</summary>
+/// <summary>
+/// The single <c>info.json</c> written at the root of an export: every entity the export wrote, the
+/// node each one belongs to, and the origin, hash and size of every file. An exported tree then
+/// explains itself after it has been moved away from the tool, without one json per folder.
+/// </summary>
+public sealed record CatalogInfoDocument(
+    string GeneratedAt,
+    string Tool,
+    int EntityCount,
+    int FileCount,
+    long TotalBytes,
+    IReadOnlyList<CatalogInfoEntity> Entities);
+
+/// <summary>Serialization of the catalog export info file, written once per export root.</summary>
 public static class CatalogInfo
 {
-    /// <summary>File written into every entity folder of an export.</summary>
+    /// <summary>File written at the root of an export.</summary>
     public const string FileName = "info.json";
 
     private static readonly JsonSerializerOptions Options = new()
@@ -44,27 +51,45 @@ public static class CatalogInfo
     };
 
     /// <summary>
-    /// Name to use in a folder that holds <paramref name="relativePaths"/>: <c>info.json</c>, or
-    /// <c>_info.json</c> (and so on) when an exported asset of the same folder is called the same.
+    /// Writes <paramref name="entities"/> into <c>root\info.json</c>. Entities already listed there by
+    /// an earlier export stay, so several exports into one output folder share a single summary; a
+    /// re-exported entity replaces its own entry.
     /// </summary>
-    public static string NameFor(IEnumerable<string> relativePaths)
+    public static CatalogInfoDocument Write(string root, string tool, IEnumerable<CatalogInfoEntity> entities)
     {
-        var taken = new HashSet<string>(relativePaths, StringComparer.OrdinalIgnoreCase);
-        var candidate = FileName;
-        while (taken.Contains(candidate)) candidate = "_" + candidate;
-        return candidate;
-    }
+        var path = Path.Combine(root, FileName);
 
-    /// <summary>Writes the document into <paramref name="folder"/>; returns the path written.</summary>
-    public static string Write(string folder, CatalogInfoDocument document, string? fileName = null)
-    {
-        Directory.CreateDirectory(folder);
-        var path = Path.Combine(folder, fileName ?? FileName);
+        var merged = new Dictionary<string, CatalogInfoEntity>(StringComparer.OrdinalIgnoreCase);
+        foreach (var entity in Read(path)?.Entities ?? Array.Empty<CatalogInfoEntity>())
+            merged[entity.Folder] = entity;
+        foreach (var entity in entities)
+            merged[entity.Folder] = entity;
+
+        var ordered = merged.Values.OrderBy(entity => entity.Folder, StringComparer.OrdinalIgnoreCase).ToList();
+        var document = new CatalogInfoDocument(
+            DateTime.Now.ToString("yyyy-MM-ddTHH:mm:sszzz", System.Globalization.CultureInfo.InvariantCulture),
+            tool,
+            ordered.Count,
+            ordered.Sum(entity => entity.FileCount),
+            ordered.Sum(entity => entity.TotalBytes),
+            ordered);
+
+        Directory.CreateDirectory(root);
         File.WriteAllText(path, JsonSerializer.Serialize(document, Options), new UTF8Encoding(false));
-        return path;
+        return document;
     }
 
     /// <summary>Reads a written document back; used by the tests and by anyone re-reading an export.</summary>
     public static CatalogInfoDocument? Read(string path)
-        => File.Exists(path) ? JsonSerializer.Deserialize<CatalogInfoDocument>(File.ReadAllText(path), Options) : null;
+    {
+        if (!File.Exists(path)) return null;
+        try
+        {
+            return JsonSerializer.Deserialize<CatalogInfoDocument>(File.ReadAllText(path), Options);
+        }
+        catch (JsonException)
+        {
+            return null;   // someone replaced it with something else: start the summary over
+        }
+    }
 }

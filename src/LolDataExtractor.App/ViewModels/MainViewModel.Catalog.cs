@@ -618,8 +618,8 @@ public sealed partial class MainViewModel
         var destinations = new Dictionary<ulong, string>();
         var wads = new List<string>();
 
-        // The same node can cover several entities (a whole section or group), and every entity's
-        // folder gets its own info.json, so group the entries by the entity they land in.
+        // The same node can cover several entities (a whole section or group), and the export writes one
+        // aggregated info.json at its root, so group the entries by the entity they land in.
         var byEntity = new Dictionary<int, List<CatalogInfoEntry>>();
         var sizes = new Dictionary<int, long>();
         foreach (var entry in entries)
@@ -677,39 +677,33 @@ public sealed partial class MainViewModel
             Log(summary.ManifestPath is null ? summary.Describe() : $"{summary.Describe()}；清单 {Path.GetFileName(summary.ManifestPath)}");
             foreach (var error in summary.Errors.Take(5)) Log("失败：" + error);
 
-            var written = await Task.Run(() => WriteCatalogInfo(output, catalog, byEntity, sizes));
-            Log($"信息 JSON：{written:N0} 个条目文件夹各写一份 {CatalogInfo.FileName}");
+            var info = await Task.Run(() => WriteCatalogInfo(output, catalog, byEntity, sizes));
+            Log($"信息 JSON：{Path.Combine(output, CatalogInfo.FileName)}" +
+                $"（{info.EntityCount:N0} 个条目 / {info.FileCount:N0} 个文件）");
         });
     }
 
     /// <summary>
-    /// Writes one <c>info.json</c> into every entity folder of an export: the node the files belong to
-    /// plus the original path, hash, size and wad of each file, so an exported folder still explains
-    /// itself after it has been moved away from the tool.
+    /// Writes one aggregated <c>info.json</c> into the export root: every entity the export wrote, the
+    /// node it belongs to, plus the original path, hash, size and wad of each file, so an exported tree
+    /// still explains itself after it has been moved away from the tool.
     /// </summary>
-    private static int WriteCatalogInfo(string output, AssetCatalog catalog,
+    private static CatalogInfoDocument WriteCatalogInfo(string output, AssetCatalog catalog,
         IReadOnlyDictionary<int, List<CatalogInfoEntry>> byEntity, IReadOnlyDictionary<int, long> sizes)
     {
-        var generatedAt = DateTime.Now.ToString("yyyy-MM-ddTHH:mm:sszzz", System.Globalization.CultureInfo.InvariantCulture);
-        var tool = $"LolDataExtractor {AppInfo.Version}";
-        var written = 0;
-
+        var entities = new List<CatalogInfoEntity>();
         foreach (var (entityIndex, files) in byEntity)
         {
             var entity = catalog.Entities[entityIndex];
             var group = catalog.Groups[entity.Group];
             var section = CatalogSectionInfo.Of(group.Section);
-            var folder = CatalogPaths.EntityFolderOf(section, group, entity);
 
-            var document = new CatalogInfoDocument(
-                generatedAt, tool, section.Display, group.Label, entity.Label, entity.Anchor, folder,
-                files.Count, sizes.GetValueOrDefault(entityIndex), files);
-
-            CatalogInfo.Write(Path.Combine(output, folder), document,
-                CatalogInfo.NameFor(files.Select(file => file.File)));
-            written++;
+            entities.Add(new CatalogInfoEntity(
+                section.Display, group.Label, entity.Label, entity.Anchor,
+                CatalogPaths.EntityFolderOf(section, group, entity),
+                files.Count, sizes.GetValueOrDefault(entityIndex), files));
         }
 
-        return written;
+        return CatalogInfo.Write(output, $"LolDataExtractor {AppInfo.Version}", entities);
     }
 }

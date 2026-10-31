@@ -440,7 +440,7 @@ public class CatalogTests
     }
 
     [Fact]
-    public void InfoJsonSitsInTheEntityFolderAndExplainsEveryFile()
+    public void InfoJsonSitsAtTheExportRootAndExplainsEveryEntity()
     {
         var section = CatalogSectionInfo.Of(CatalogSection.Champion);
         var group = new CatalogGroup(CatalogSection.Champion, "Ahri", "ahri", null, 0);
@@ -452,33 +452,52 @@ public class CatalogTests
         Assert.Equal(Path.Combine("英雄", "ahri", "skin05"),
             CatalogPaths.EntityFolderOf(section, group, entity));
 
-        var folder = Path.Combine(Path.GetTempPath(), "loldata-tests", Guid.NewGuid().ToString("N"),
-            CatalogPaths.EntityFolderOf(section, group, entity));
+        var root = Path.Combine(Path.GetTempPath(), "loldata-tests", Guid.NewGuid().ToString("N"));
+        var folder = CatalogPaths.EntityFolderOf(section, group, entity);
         var file = new CatalogInfoEntry(Path.Combine("particles", "a.tex"),
             "assets/characters/ahri/skins/skin05/particles/a.tex", "0123456789ABCDEF", 100, "Ahri.wad.client", "tex");
-        var document = new CatalogInfoDocument("2026-11-01T10:00:00+08:00", "LolDataExtractor 1.2.2", "英雄",
-            "Ahri", "Challenger Ahri", entity.Anchor, Path.Combine("英雄", "ahri", "skin05"), 1, 100, new[] { file });
 
-        var path = CatalogInfo.Write(folder, document, CatalogInfo.NameFor(new[] { file.File }));
-        Assert.Equal(Path.Combine(folder, "info.json"), path);
+        var document = CatalogInfo.Write(root, "LolDataExtractor 1.1.1",
+            new[] { new CatalogInfoEntity(section.Display, group.Label, entity.Label, entity.Anchor, folder, 1, 100, new[] { file }) });
+
+        var path = Path.Combine(root, "info.json");
+        Assert.True(File.Exists(path));
+        Assert.False(File.Exists(Path.Combine(root, folder, "info.json")));   // 不再往条目文件夹里塞小 json
+        Assert.Equal(1, document.EntityCount);
 
         var reopened = CatalogInfo.Read(path);
         Assert.NotNull(reopened);
-        Assert.Equal("Ahri", reopened!.Group);
-        Assert.Equal("Challenger Ahri", reopened.Entity);
-        var only = Assert.Single(reopened.Files);
-        Assert.Equal("Ahri.wad.client", only.Wad);
-        Assert.Equal("0123456789ABCDEF", only.Hash);
+        var only = Assert.Single(reopened!.Entities);
+        Assert.Equal("Ahri", only.Group);
+        Assert.Equal("Challenger Ahri", only.Entity);
+        Assert.Equal(folder, only.Folder);
+        var entry = Assert.Single(only.Files);
+        Assert.Equal("Ahri.wad.client", entry.Wad);
+        Assert.Equal("0123456789ABCDEF", entry.Hash);
         Assert.Contains("英雄", File.ReadAllText(path));   // 中文不转义，直接用记事本也看得懂
     }
 
     [Fact]
-    public void InfoJsonNeverOverwritesAnAssetOfTheSameName()
+    public void InfoJsonOfSeveralExportsSharesOneSummary()
     {
-        Assert.Equal("info.json", CatalogInfo.NameFor(new[] { Path.Combine("particles", "a.tex") }));
-        Assert.Equal("info.json", CatalogInfo.NameFor(new[] { Path.Combine("sub", "info.json") }));
-        Assert.Equal("_info.json", CatalogInfo.NameFor(new[] { "info.json" }));
-        Assert.Equal("__info.json", CatalogInfo.NameFor(new[] { "info.json", "_info.json" }));
+        var root = Path.Combine(Path.GetTempPath(), "loldata-tests", Guid.NewGuid().ToString("N"));
+        var first = new CatalogInfoEntity("英雄", "Ahri", "Base", "assets/characters/ahri/base/",
+            Path.Combine("英雄", "ahri", "base"), 2, 300, Array.Empty<CatalogInfoEntry>());
+        var second = new CatalogInfoEntity("皮肤", "Spirit Blossom", "lillia_skin01", "assets/characters/lillia/",
+            Path.Combine("皮肤", "Spirit_Blossom", "lillia_skin01"), 3, 700, Array.Empty<CatalogInfoEntry>());
+
+        CatalogInfo.Write(root, "LolDataExtractor 1.1.1", new[] { first });
+        var merged = CatalogInfo.Write(root, "LolDataExtractor 1.1.1", new[] { second });
+
+        Assert.Equal(2, merged.EntityCount);
+        Assert.Equal(5, merged.FileCount);
+        Assert.Equal(1000, merged.TotalBytes);
+        Assert.Equal(new[] { first.Folder, second.Folder }.OrderBy(f => f, StringComparer.OrdinalIgnoreCase),
+            merged.Entities.Select(entity => entity.Folder));
+
+        // 再导一次同一个条目只会换掉它自己那一项，不会多出一条。
+        var again = CatalogInfo.Write(root, "LolDataExtractor 1.1.1", Array.Empty<CatalogInfoEntity>());
+        Assert.Equal(2, again.EntityCount);
     }
 
     // ── classifier ───────────────────────────────────────────────────────────────────────────
