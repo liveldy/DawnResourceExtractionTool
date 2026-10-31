@@ -109,6 +109,50 @@ public class ExtractionFilterTests
         Assert.False(filter.Matches(Entry("assets/characters/ahri/skins/base/ahri_base.skn")));
         Assert.False(filter.Matches(Entry("assets/characters/akali/skins/base/akali_tx_cm.tex")));
     }
+
+    [Theory]
+    [InlineData("assets/characters/ahri/skins/base/ahri_base.skn", true)]
+    [InlineData("\\assets\\characters\\ahri\\skins\\base\\ahri_base.skn", true)]
+    [InlineData("ASSETS/Characters/Ahri/Skins/Base/Ahri_Base.skn", true)]
+    [InlineData("assets/characters/ahri/skins/base/ahri_base.skn.bak", false)]
+    [InlineData("assets/characters/ahri/skins/base/ahri_base.tex", false)]
+    public void Exact_paths_keep_only_the_picked_entries(string path, bool expected)
+    {
+        var filter = new ExtractionFilter
+        {
+            ExactPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                "assets/characters/ahri/skins/base/ahri_base.skn",
+            },
+        };
+
+        Assert.Equal(expected, filter.Matches(Entry(path)));
+        Assert.False(filter.IsEmpty);
+    }
+
+    [Fact]
+    public void Exact_paths_never_match_unnamed_entries()
+    {
+        var filter = new ExtractionFilter
+        {
+            ExactPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "assets/a.bin" },
+        };
+
+        Assert.False(filter.Matches(Entry(null)));
+    }
+
+    [Fact]
+    public void Exact_hashes_keep_only_the_ticked_entries()
+    {
+        var first = PathHashing.Compute("assets/characters/ahri/skins/base/ahri_base.skn");
+        var unnamed = 0xabcdef0123456789UL;
+        var filter = new ExtractionFilter { ExactHashes = new HashSet<ulong> { first, unnamed } };
+
+        Assert.True(filter.Matches(Entry("assets/characters/ahri/skins/base/ahri_base.skn")));
+        Assert.True(filter.Matches(Entry(null, hash: unnamed)));
+        Assert.False(filter.Matches(Entry("assets/characters/ahri/skins/base/ahri_base.tex")));
+        Assert.False(filter.IsEmpty);
+    }
 }
 
 public class WadEntryInfoTests

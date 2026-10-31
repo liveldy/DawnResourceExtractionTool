@@ -40,6 +40,67 @@ public partial class MainWindow : Window
         if (e.NewValue is TreeNodeVm node) ViewModel.SelectedNode = node;
     }
 
+    /// <summary>Drag limits of the three columns, in device independent pixels.</summary>
+    private const double WadColumnMin = 200;
+    private const double TreeColumnMin = 320;
+    private const double PreviewColumnMin = 360;
+    private const double GutterWidth = 10;
+
+    /// <summary>Space the two gutters take out of the grid.</summary>
+    private static double Gutters => GutterWidth * 2;
+
+    /// <summary>
+    /// Left splitter. The right column keeps its width, so the left one can only grow while the
+    /// middle column still has its minimum — that is what used to push the right panel out.
+    /// </summary>
+    private void WadSplitter_DragDelta(object sender, System.Windows.Controls.Primitives.DragDeltaEventArgs e)
+    {
+        var available = ColumnGrid.ActualWidth - Gutters;
+        if (available <= 0) return;
+        WadColumn.Width = new GridLength(
+            FitLeftColumn(available, WadColumn.ActualWidth + e.HorizontalChange, PreviewColumn.ActualWidth));
+    }
+
+    /// <summary>Right splitter: the right column may not take room the middle one needs.</summary>
+    private void PreviewSplitter_DragDelta(object sender, System.Windows.Controls.Primitives.DragDeltaEventArgs e)
+    {
+        var available = ColumnGrid.ActualWidth - Gutters;
+        if (available <= 0) return;
+        PreviewColumn.Width = new GridLength(
+            FitRightColumn(available, WadColumn.ActualWidth, PreviewColumn.ActualWidth - e.HorizontalChange));
+    }
+
+    /// <summary>Shrinking the window pulls the side columns back so the middle one keeps its width.</summary>
+    private void ColumnGrid_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        var available = ColumnGrid.ActualWidth - Gutters;
+        if (available <= 0) return;
+
+        var wad = CurrentWidth(WadColumn);
+        var preview = CurrentWidth(PreviewColumn);
+        var wadTarget = FitLeftColumn(available, wad, preview);
+        var previewTarget = FitRightColumn(available, wadTarget, preview);
+
+        if (Math.Abs(wadTarget - wad) > 0.5) WadColumn.Width = new GridLength(wadTarget);
+        if (Math.Abs(previewTarget - preview) > 0.5) PreviewColumn.Width = new GridLength(previewTarget);
+    }
+
+    /// <summary>
+    /// Width the left column may take: at least <see cref="WadColumnMin"/>, at most what is left of
+    /// <paramref name="available"/> once the middle column keeps its minimum and the right column
+    /// keeps its current width.
+    /// </summary>
+    internal static double FitLeftColumn(double available, double wad, double preview) =>
+        Math.Clamp(wad, WadColumnMin, Math.Max(WadColumnMin, available - TreeColumnMin - preview));
+
+    /// <summary>Width the right column may take, holding the middle column at its minimum.</summary>
+    internal static double FitRightColumn(double available, double wad, double preview) =>
+        Math.Clamp(preview, PreviewColumnMin, Math.Max(PreviewColumnMin, available - TreeColumnMin - wad));
+
+    /// <summary>Pixel width of a side column: its pixel request, or what it got when it is not pixel based.</summary>
+    private static double CurrentWidth(ColumnDefinition column) =>
+        column.Width.IsAbsolute ? column.Width.Value : column.ActualWidth;
+
     /// <summary>Right click selects the item under the cursor so the context menu acts on it.</summary>
     private void TreeView_PreviewMouseRightButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {

@@ -62,16 +62,18 @@
             </Grid>
         </Border>
 
-        <!-- 主体：三栏 -->
-        <Grid Grid.Row="1">
+        <!-- 主体：三栏，栏与栏之间是 10px 的可拖动分隔条 -->
+        <Grid Grid.Row="1" x:Name="ColumnGrid" SizeChanged="ColumnGrid_SizeChanged">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="290" />
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="440" />
+                <ColumnDefinition x:Name="WadColumn" Width="290" MinWidth="200" />
+                <ColumnDefinition Width="10" />
+                <ColumnDefinition x:Name="TreeColumn" Width="*" MinWidth="320" />
+                <ColumnDefinition Width="10" />
+                <ColumnDefinition x:Name="PreviewColumn" Width="440" MinWidth="360" />
             </Grid.ColumnDefinitions>
 
-            <!-- WAD 列表 -->
-            <Border Grid.Column="0" Style="{StaticResource PanelCard}">
+            <!-- wad 列表 -->
+            <Border Grid.Column="0" Style="{StaticResource PanelCard}" Margin="0">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -80,7 +82,7 @@
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
 
-                    <TextBlock Grid.Row="0" Text="WAD 文件" Style="{StaticResource SectionTitle}" />
+                    <TextBlock Grid.Row="0" Text="wad 文件" Style="{StaticResource SectionTitle}" />
 
                     <DockPanel Grid.Row="1" Margin="0,0,0,6">
                         <StackPanel Orientation="Horizontal">
@@ -115,19 +117,10 @@
                         <TreeView.ItemTemplate>
                             <HierarchicalDataTemplate ItemsSource="{Binding Children}">
                                 <StackPanel Orientation="Horizontal" Margin="0,1">
-                                    <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                              Margin="0,0,5,0" VerticalAlignment="Center">
-                                        <CheckBox.Style>
-                                            <Style TargetType="CheckBox">
-                                                <Setter Property="Visibility" Value="Visible" />
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding IsFolder}" Value="True">
-                                                        <Setter Property="Visibility" Value="Collapsed" />
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </CheckBox.Style>
-                                    </CheckBox>
+                                    <CheckBox IsChecked="{Binding CheckState, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                              IsThreeState="False"
+                                              Margin="0,0,5,0" VerticalAlignment="Center"
+                                              ToolTip="{Binding CheckToolTip}" />
                                     <TextBlock Text="{Binding Name}" FontSize="12" VerticalAlignment="Center"
                                                TextTrimming="CharacterEllipsis"
                                                ToolTip="{Binding DetailToolTip}">
@@ -152,8 +145,13 @@
                 </Grid>
             </Border>
 
+            <!-- 左边栏与中间栏之间的分隔条 -->
+            <Thumb Grid.Column="1" Width="10" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                   Cursor="SizeWE" DragDelta="WadSplitter_DragDelta"
+                   ToolTip="拖动调整栏宽" />
+
             <!-- 目录树 -->
-            <Border Grid.Column="1" Style="{StaticResource PanelCard}">
+            <Border Grid.Column="2" Style="{StaticResource PanelCard}" Margin="0">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -200,6 +198,10 @@
                         <TreeView.ItemTemplate>
                             <HierarchicalDataTemplate ItemsSource="{Binding Children}">
                                 <StackPanel Orientation="Horizontal" Margin="0,1">
+                                    <CheckBox IsChecked="{Binding CheckState, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                              IsThreeState="False"
+                                              Margin="0,0,5,0" VerticalAlignment="Center"
+                                              ToolTip="{Binding CheckToolTip}" />
                                     <TextBlock Text="{Binding DisplayName}" FontSize="12"
                                                TextTrimming="CharacterEllipsis" VerticalAlignment="Center">
                                         <TextBlock.Style>
@@ -225,8 +227,13 @@
                 </Grid>
             </Border>
 
+            <!-- 中间栏与右边栏之间的分隔条 -->
+            <Thumb Grid.Column="3" Width="10" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                   Cursor="SizeWE" DragDelta="PreviewSplitter_DragDelta"
+                   ToolTip="拖动调整栏宽" />
+
             <!-- 右侧：预览 / 导出设置 -->
-            <Border Grid.Column="2" Style="{StaticResource PanelCard}" Margin="0" Padding="8">
+            <Border Grid.Column="4" Style="{StaticResource PanelCard}" Margin="0" Padding="8">
                 <TabControl x:Name="RightTabs" BorderThickness="0" Background="Transparent">
 
                     <!-- 预览 -->

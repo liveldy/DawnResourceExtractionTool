@@ -69,7 +69,7 @@ public sealed class WadArchive : IDisposable
     public Stream OpenDecompressed(ulong hash)
     {
         if (!_wad.Entries.TryGetValue(hash, out var entry))
-            throw new KeyNotFoundException($"WAD 中不存在 hash {PathHashing.ToText(hash)}");
+            throw new KeyNotFoundException($"wad 中不存在 hash {PathHashing.ToText(hash)}");
         return entry.GetDataHandle().GetDecompressedStream();
     }
 

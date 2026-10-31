@@ -83,6 +83,18 @@ public sealed class ExtractionFilter
     /// <summary>Only keep entries below this folder, e.g. <c>assets/characters/ahri</c>.</summary>
     public string? PathPrefix { get; set; }
 
+    /// <summary>
+    /// Only keep these exact entry paths, e.g. the one node picked in the browser. Matching is
+    /// case-insensitive and accepts either slash, so a path copied from the tree works as is.
+    /// </summary>
+    public HashSet<string>? ExactPaths { get; set; }
+
+    /// <summary>
+    /// Only keep these entries, addressed by hash. This is what the tick boxes of the browser
+    /// collect, and unlike <see cref="ExactPaths"/> it also covers entries without a known path.
+    /// </summary>
+    public HashSet<ulong>? ExactHashes { get; set; }
+
     public HashSet<string>? Categories { get; set; }
 
     public HashSet<string>? Extensions { get; set; }
@@ -96,6 +108,8 @@ public sealed class ExtractionFilter
     public bool IsEmpty =>
         string.IsNullOrWhiteSpace(PathPattern) &&
         string.IsNullOrWhiteSpace(PathPrefix) &&
+        (ExactPaths is null || ExactPaths.Count == 0) &&
+        (ExactHashes is null || ExactHashes.Count == 0) &&
         (Categories is null || Categories.Count == 0) &&
         (Extensions is null || Extensions.Count == 0) &&
         MinSize is null && MaxSize is null &&
@@ -105,6 +119,9 @@ public sealed class ExtractionFilter
 
     private string? _prefix;
     private bool _prefixReady;
+
+    private HashSet<string>? _exact;
+    private bool _exactReady;
 
     /// <summary>Folder prefix of <see cref="PathPrefix"/>, normalised once per filter.</summary>
     private string? Prefix
@@ -129,11 +146,38 @@ public sealed class ExtractionFilter
         }
     }
 
+    /// <summary>Case-insensitive set of <see cref="ExactPaths"/>, normalised once per filter.</summary>
+    private HashSet<string>? Exact
+    {
+        get
+        {
+            if (_exactReady) return _exact;
+            _exactReady = true;
+            if (ExactPaths is not { Count: > 0 } paths) return _exact = null;
+            _exact = paths
+                .Where(path => !string.IsNullOrWhiteSpace(path))
+                .Select(NormalizeExactPath)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            return _exact;
+        }
+    }
+
+    /// <summary>Forward slashes, no surrounding slash: the shape both tree paths and filters use.</summary>
+    private static string NormalizeExactPath(string path) => path.Replace('\\', '/').Trim().Trim('/');
+
     public bool Matches(WadEntryInfo entry)
     {
         if (!IncludeUnnamed && !entry.IsNamed) return false;
         if (MinSize is { } min && entry.UncompressedSize < min) return false;
         if (MaxSize is { } max && entry.UncompressedSize > max) return false;
+
+        if (ExactHashes is { Count: > 0 } hashes && !hashes.Contains(entry.Hash)) return false;
+
+        if (Exact is { Count: > 0 } exact)
+        {
+            var exactPath = entry.Path is null ? null : NormalizeExactPath(entry.Path);
+            if (exactPath is null || !exact.Contains(exactPath)) return false;
+        }
 
         if (Extensions is { Count: > 0 } extensions)
         {

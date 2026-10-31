@@ -26,6 +26,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     private NameTable _names = NameTable.Empty;
     private List<WadEntryInfo> _currentEntries = new();
+
+    /// <summary>Hashes ticked in the browser; survives filtering so a search cannot lose them.</summary>
+    private readonly HashSet<ulong> _checkedEntries = new();
     private CancellationTokenSource? _cancellation;
     private WadItem? _selectedWad;
     private TreeNodeVm? _selectedNode;
@@ -175,7 +178,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     };
 
     /// <summary>Which wads an export covers.</summary>
-    public static IReadOnlyList<string> ExportScopes { get; } = new[] { "勾选的 wad", "当前 wad", "全部 wad" };
+    public static IReadOnlyList<string> ExportScopes { get; } =
+        new[] { "选择的 wad", "当前 wad", "全部 wad", "当前 wad 选中的内容" };
 
     /// <summary>How audio entries are written; mp3 first so it is the default.</summary>
     public static IReadOnlyList<AudioFormatOption> AudioFormats { get; } = new[]
@@ -410,6 +414,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             _skeletonCache.Clear();
             _animationCache.Clear();
             _textureCache.Clear();
+            _checkedEntries.Clear();   // ticks belong to the wad they were made in
             PendingEntries = LoadEntriesAsync(value);
         }
     }
@@ -845,6 +850,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     /// <summary>Rebuilds the tree from the current search and category filters.</summary>
     private void ApplyFilter()
     {
+        // Keep the ticks the user made before the rebuild: the tree is thrown away and rebuilt.
+        SyncCheckedEntries();
+
         var query = (IEnumerable<WadEntryInfo>)_currentEntries;
 
         if (!string.IsNullOrWhiteSpace(SearchText))
@@ -867,7 +875,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         TreeRoots.Clear();
         foreach (var root in roots)
         {
-            var node = new TreeNodeVm(root) { IsExpanded = true };
+            var node = new TreeNodeVm(root, _checkedEntries) { IsExpanded = true };
             if (expandAll) node.ExpandAll();
             else ExpandChain(node);
             TreeRoots.Add(node);
@@ -927,7 +935,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         foreach (var wad in matches.OrderBy(wad => wad.RelativePath, StringComparer.OrdinalIgnoreCase))
         {
             var segments = wad.RelativePath.Replace('\\', '/').Split('/', StringSplitOptions.RemoveEmptyEntries);
-            AddWadNode(roots, segments, 0, wad);
+            AddWadNode(roots, null, segments, 0, wad);
         }
 
         WadRoots.Clear();
@@ -940,22 +948,24 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     }
 
     /// <summary>Walks one folder level of <paramref name="segments"/> and hangs the wad leaf on the end.</summary>
-    private static void AddWadNode(ObservableCollection<WadTreeNode> level, string[] segments, int index, WadItem wad)
+    private static void AddWadNode(ObservableCollection<WadTreeNode> level, WadTreeNode? parent,
+        string[] segments, int index, WadItem wad)
     {
         if (index >= segments.Length - 1)
         {
-            level.Add(new WadTreeNode(wad));
+            var leaf = new WadTreeNode(wad) { Parent = parent };
+            level.Add(leaf);
             return;
         }
 
         var folder = level.FirstOrDefault(node => node.IsFolder && node.Name == segments[index]);
         if (folder is null)
         {
-            folder = new WadTreeNode(segments[index]);
+            folder = new WadTreeNode(segments[index]) { Parent = parent };
             level.Add(folder);
         }
 
-        AddWadNode(folder.Children, segments, index + 1, wad);
+        AddWadNode(folder.Children, folder, segments, index + 1, wad);
     }
 
     /// <summary>Clears the ticks of the wads the tree currently shows (the filtered set, if searching).</summary>
@@ -1592,7 +1602,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     /// <summary>Wads covered by the current export scope.</summary>
     private List<string> ResolveExportWads()
     {
-        if (SelectedExportScope == ExportScopes[1])
+        if (SelectedExportScope == ExportScopes[1] || SelectedExportScope == ExportScopes[3])
             return SelectedWad is null ? new List<string>() : new List<string> { SelectedWad.FullPath };
 
         if (SelectedExportScope == ExportScopes[2])
@@ -1601,6 +1611,51 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         var selected = Wads.Where(wad => wad.IsSelected).Select(wad => wad.FullPath).ToList();
         if (selected.Count == 0 && SelectedWad is not null) selected.Add(SelectedWad.FullPath);
         return selected;
+    }
+
+    /// <summary>True for the scope that exports what the tree of the open wad has ticked.</summary>
+    private bool IsSelectionScope => SelectedExportScope == ExportScopes[3];
+
+    /// <summary>Copies the tick state of the current tree into the checked set, unticks included.</summary>
+    private void SyncCheckedEntries()
+    {
+        foreach (var root in TreeRoots) root.SyncChecked(_checkedEntries);
+    }
+
+    /// <summary>Self test helper: ticks every entry the tree currently shows.</summary>
+    public void CheckAllEntries()
+    {
+        foreach (var root in TreeRoots) root.CheckState = true;
+        SyncCheckedEntries();
+        Log($"自检：勾选目录树里全部条目 → {_checkedEntries.Count:N0} 个");
+    }
+
+    /// <summary>
+    /// Narrows a filter to the entries ticked in the open wad's tree. The manual path pattern,
+    /// folder prefix and extension fields step aside because the ticks are the more specific
+    /// instruction; category and media options still apply.
+    /// </summary>
+    private bool RestrictToSelection(ExtractionFilter filter)
+    {
+        if (_selectedWad is null)
+        {
+            StatusText = "请先打开要导出的 wad";
+            return false;
+        }
+
+        SyncCheckedEntries();
+        if (_checkedEntries.Count == 0)
+        {
+            StatusText = "请先在目录树里勾选要导出的条目";
+            return false;
+        }
+
+        filter.PathPrefix = null;
+        filter.PathPattern = null;
+        filter.Extensions = null;
+        filter.ExactPaths = null;
+        filter.ExactHashes = new HashSet<ulong>(_checkedEntries);
+        return true;
     }
 
     /// <summary>Checked categories, or <c>null</c> when every category is exported.</summary>
@@ -1654,6 +1709,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             IncludeUnnamed = OptionIncludeUnnamed,
         };
 
+        if (wadsOverride is null && IsSelectionScope && !RestrictToSelection(filter)) return;
+
         var options = new ExtractionOptions
         {
             OutputRoot = Path.GetFullPath(OutputRootText),
@@ -1672,6 +1729,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         if (mediaOnly) Log("只导出可用媒体：贴图转 PNG，音频转 MP3");
         Log($"导出开始：{selected.Count} 个 wad · 范围「{SelectedExportScope}」" +
             (filter.PathPrefix is null ? string.Empty : $" · 目录 {filter.PathPrefix}") +
+            (filter.ExactPaths is { Count: > 0 } exact ? $" · 条目 {string.Join("、", exact)}" : string.Empty) +
+            (filter.ExactHashes is { Count: > 0 } hashes ? $" · 勾选 {hashes.Count:N0} 个条目" : string.Empty) +
             (categories is null ? string.Empty : $" · 类别 {string.Join(",", categories)}"));
 
         await RunBusyAsync("导出中…", async () =>

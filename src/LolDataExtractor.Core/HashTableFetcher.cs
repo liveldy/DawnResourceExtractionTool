@@ -21,7 +21,7 @@ public sealed record HashTableFetchResult(
     long Bytes);
 
 /// <summary>
-/// Downloads the CommunityDragon hash tables (hash to asset path) that give WAD
+/// Downloads the CommunityDragon hash tables (hash to asset path) that give wad
 /// entries their names. Files are fetched through the GitHub contents API because
 /// raw.githubusercontent.com is frequently unreachable behind mainland networks.
 /// </summary>

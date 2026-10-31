@@ -3,7 +3,7 @@ using System.Text;
 namespace LolDataExtractor.Core;
 
 /// <summary>
-/// Content based identification for WAD entries. Most assets inside a wad carry a
+/// Content based identification for wad entries. Most assets inside a wad carry a
 /// signature, which lets the extractor pick a usable extension even when the path
 /// name could not be resolved through a hashtable.
 /// </summary>

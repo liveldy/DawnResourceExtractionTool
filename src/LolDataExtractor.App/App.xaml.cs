@@ -31,6 +31,7 @@ public partial class App : Application
         var exportMedia = GetArgument(e.Args, "--export-media");
         var exportStream = GetArgument(e.Args, "--export-stream");
         var wadFilter = GetArgument(e.Args, "--wad-filter");
+        var checkAll = HasFlag(e.Args, "--check-all");
 
         var window = new MainWindow();
         MainWindow = window;
@@ -41,6 +42,7 @@ public partial class App : Application
             await window.InitializeAsync(root);
             if (wad is not null) await window.SelectWadAsync(wad);
             if (select is not null) await window.SelectEntryAsync(select);
+            if (checkAll) window.ViewModel.CheckAllEntries();
             if (wadFilter is not null)
             {
                 window.ViewModel.WadSearchText = wadFilter;
@@ -91,7 +93,13 @@ public partial class App : Application
     {
         var viewModel = window.ViewModel;
         viewModel.OutputRootText = outputDirectory;
-        viewModel.SelectedWad = viewModel.Wads.FirstOrDefault(w => w.Name.StartsWith("Ahri", StringComparison.OrdinalIgnoreCase));
+
+        // Keep the wad the self test already opened (and its selection); only switch when needed,
+        // and wait for the entry tree so a selection-based scope sees the node picked earlier.
+        var current = viewModel.SelectedWad;
+        if (current is null || !current.Name.StartsWith("Ahri", StringComparison.OrdinalIgnoreCase))
+            await viewModel.SelectWadAsync("Ahri");
+        if (viewModel.PendingEntries is { } loading) await loading;
 
         if (scope is not null)
         {
@@ -99,6 +107,7 @@ public partial class App : Application
             {
                 "current" => MainViewModel.ExportScopes[1],
                 "all" => MainViewModel.ExportScopes[2],
+                "selected" => MainViewModel.ExportScopes[3],
                 _ => MainViewModel.ExportScopes[0],
             };
             viewModel.ExportPattern = "*";
