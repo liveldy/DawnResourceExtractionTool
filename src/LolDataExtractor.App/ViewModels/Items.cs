@@ -31,6 +31,9 @@ public sealed class WadItem : ObservableObject
         get => _isSelected;
         set => SetProperty(ref _isSelected, value);
     }
+
+    /// <summary>True for the client plugin archives below <c>LeagueClient\plugins</c>.</summary>
+    public bool IsClient => Summary.IsClient;
 }
 
 /// <summary>Tree node for the wad list: a folder of the DATA tree, or one wad file.</summary>
@@ -170,6 +173,16 @@ public sealed class WadTreeNode : ObservableObject
     {
         IsExpanded = true;
         foreach (var child in Children) child.ExpandAll();
+    }
+
+    /// <summary>
+    /// Expands this folder and its children while the subtree stays small. The game tree holds one
+    /// folder with 576 wads, which used to push the client assets out of sight below a wall of rows.
+    /// </summary>
+    public void ExpandAll(int maxWads)
+    {
+        IsExpanded = WadCount <= maxWads;
+        foreach (var child in Children) child.ExpandAll(maxWads);
     }
 }
 

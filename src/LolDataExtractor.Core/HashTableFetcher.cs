@@ -32,6 +32,9 @@ public sealed class HashTableFetcher
     public const string HashesDirectory = "hashes/lol";
     public const string GamePrefix = "hashes.game.txt";
 
+    /// <summary>The client (LCU) name table; entries below <c>plugins/&lt;plugin&gt;/…</c>.</summary>
+    public const string ClientTableName = "hashes.lcu.txt";
+
     private readonly HttpClient _http;
 
     public HashTableFetcher(HttpClient? http = null)
@@ -94,6 +97,15 @@ public sealed class HashTableFetcher
 
     public async Task<IReadOnlyList<HashTableFile>> ListGamePartsAsync(string? token = null, CancellationToken cancellationToken = default)
     {
+        var files = await ListDirectoryAsync(token, cancellationToken).ConfigureAwait(false);
+        return files.Where(file => file.Name.StartsWith(GamePrefix, StringComparison.Ordinal))
+            .OrderBy(file => file.Name, StringComparer.Ordinal)
+            .ToArray();
+    }
+
+    /// <summary>Lists the hash table folder; every file, so callers can pick the game parts or the client table.</summary>
+    private async Task<List<HashTableFile>> ListDirectoryAsync(string? token, CancellationToken cancellationToken)
+    {
         using var response = await _http.SendAsync(CreateRequest(DirectoryUri, raw: false, token), cancellationToken).ConfigureAwait(false);
         if (response.StatusCode == HttpStatusCode.NotFound)
             throw new InvalidOperationException("远端哈希表目录不存在，请检查网络或仓库状态");
@@ -108,11 +120,57 @@ public sealed class HashTableFetcher
         foreach (var element in document.RootElement.EnumerateArray())
         {
             var name = element.GetProperty("name").GetString();
-            if (name is null || !name.StartsWith(GamePrefix, StringComparison.Ordinal)) continue;
+            if (name is null) continue;
             files.Add(new HashTableFile(name, element.GetProperty("size").GetInt64()));
         }
-        files.Sort((a, b) => string.CompareOrdinal(a.Name, b.Name));
         return files;
+    }
+
+    /// <summary>
+    /// Downloads <c>hashes.lcu.txt</c>, the name table of the client plugin archives. It is a single
+    /// 17 MB file, so it is fetched (not listed part by part) unless an identical copy is present.
+    /// </summary>
+    public async Task<string> FetchClientTableAsync(
+        string targetDirectory,
+        string? token = null,
+        IProgress<HashTableFetchProgress>? progress = null,
+        CancellationToken cancellationToken = default)
+    {
+        token = ResolveToken(token);
+        Directory.CreateDirectory(targetDirectory);
+
+        var files = await ListDirectoryAsync(token, cancellationToken).ConfigureAwait(false);
+        var file = files.FirstOrDefault(f => f.Name == ClientTableName)
+                   ?? throw new InvalidOperationException($"远端没有提供 {ClientTableName}");
+        var target = Path.Combine(targetDirectory, file.Name);
+
+        if (File.Exists(target) && new FileInfo(target).Length == file.Size)
+        {
+            progress?.Report(new HashTableFetchProgress("skip", file.Name, file.Size, file.Size, 1, 1));
+            return target;
+        }
+
+        var uri = new Uri($"{DirectoryUri}/{file.Name}");
+        var temp = target + ".download";
+        var attempt = 0;
+        while (true)
+        {
+            attempt++;
+            try
+            {
+                await DownloadPartAsync(uri, temp, token, file, 0, file.Size, 0, 1, progress, cancellationToken).ConfigureAwait(false);
+                break;
+            }
+            catch (Exception ex) when (attempt < MaxAttempts && ex is HttpRequestException or IOException && !cancellationToken.IsCancellationRequested)
+            {
+                progress?.Report(new HashTableFetchProgress($"重试 {attempt}", file.Name, 0, file.Size, 0, 1));
+                await Task.Delay(TimeSpan.FromSeconds(2 * attempt), cancellationToken).ConfigureAwait(false);
+            }
+        }
+
+        File.Move(temp, target, overwrite: true);
+        progress?.Report(new HashTableFetchProgress("done", file.Name, file.Size, file.Size, 1, 1));
+        return target;
     }
 
     /// <summary>Downloads every game hashtable part that is missing or truncated.</summary>

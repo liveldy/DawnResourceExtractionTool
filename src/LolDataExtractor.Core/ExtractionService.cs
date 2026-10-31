@@ -3,6 +3,16 @@ using System.Text.Json;
 
 namespace LolDataExtractor.Core;
 
+/// <summary>Which tree a wad belongs to.</summary>
+public static class WadSources
+{
+    /// <summary>The game archives below <c>Game\DATA</c>.</summary>
+    public const string Game = "game";
+
+    /// <summary>The client plugin archives below <c>LeagueClient\plugins</c>.</summary>
+    public const string Client = "client";
+}
+
 /// <summary>Summary of a single wad file, shown in the wad list.</summary>
 public sealed record WadSummary(
     string FullPath,
@@ -14,6 +24,11 @@ public sealed record WadSummary(
     long UncompressedSize,
     IReadOnlyDictionary<string, int> StorageTypes)
 {
+    /// <summary>Game DATA archive or client plugin archive; see <see cref="WadSources"/>.</summary>
+    public string Source { get; init; } = WadSources.Game;
+
+    public bool IsClient => Source == WadSources.Client;
+
     public double CompressionRatio => UncompressedSize == 0 ? 0 : (double)FileSize / UncompressedSize;
 
     public string StorageSummary => string.Join(", ", StorageTypes.OrderByDescending(kv => kv.Value).Select(kv => $"{kv.Key}×{kv.Value}"));
@@ -21,7 +36,7 @@ public sealed record WadSummary(
 
 public static class WadCatalog
 {
-    public static WadSummary Describe(string dataRoot, string wadPath)
+    public static WadSummary Describe(string dataRoot, string wadPath, string source = WadSources.Game, string? relativePath = null)
     {
         var storageTypes = new Dictionary<string, int>(StringComparer.Ordinal);
         var redirects = 0;
@@ -42,13 +57,16 @@ public static class WadCatalog
         var info = new FileInfo(wadPath);
         return new WadSummary(
             wadPath,
-            dataRoot.Length > 0 ? LolInstall.GetRelativeName(dataRoot, wadPath) : Path.GetFileName(wadPath),
+            relativePath ?? (dataRoot.Length > 0 ? LolInstall.GetRelativeName(dataRoot, wadPath) : Path.GetFileName(wadPath)),
             Path.GetFileName(wadPath),
             info.Length,
             count,
             redirects,
             uncompressed,
-            storageTypes);
+            storageTypes)
+        {
+            Source = source,
+        };
     }
 
     public static IReadOnlyList<WadSummary> Scan(
@@ -69,6 +87,35 @@ public static class WadCatalog
             catch (Exception ex)
             {
                 progress?.Report(new WadSummary(wadPath, LolInstall.GetRelativeName(dataRoot, wadPath), Path.GetFileName(wadPath), new FileInfo(wadPath).Length, 0, 0, 0, new Dictionary<string, int> { [ex.GetType().Name] = 1 }));
+            }
+        }
+        return results;
+    }
+
+    /// <summary>
+    /// Scans the client plugin archives (<c>LeagueClient\plugins\*.wad</c>). They use their own name
+    /// table, so their summaries are tagged with <see cref="WadSources.Client"/> and their relative
+    /// path starts with <see cref="LolClient.RelativePrefix"/>.
+    /// </summary>
+    public static IReadOnlyList<WadSummary> ScanClient(
+        string pluginsRoot,
+        IProgress<WadSummary>? progress = null,
+        CancellationToken cancellationToken = default)
+    {
+        var results = new List<WadSummary>();
+        foreach (var wadPath in LolClient.EnumerateWadFiles(pluginsRoot))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var relative = LolClient.RelativePath(pluginsRoot, wadPath);
+            try
+            {
+                var summary = Describe(pluginsRoot, wadPath, WadSources.Client, relative);
+                results.Add(summary);
+                progress?.Report(summary);
+            }
+            catch (Exception ex)
+            {
+                progress?.Report(new WadSummary(wadPath, relative, Path.GetFileName(wadPath), new FileInfo(wadPath).Length, 0, 0, 0, new Dictionary<string, int> { [ex.GetType().Name] = 1 }) { Source = WadSources.Client });
             }
         }
         return results;

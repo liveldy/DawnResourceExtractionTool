@@ -1,4 +1,4 @@
-# 英雄联盟数据提取工具 (LoL Data Extractor) 1.0.3
+# 英雄联盟数据提取工具 (LoL Data Extractor) 1.0.4
 
 读取 `英雄联盟\Game\DATA` 下的 wad v3 资源包，把 64 位路径哈希还原成真实资源路径，
 按树形目录浏览、就地预览、按需筛选和多线程解包。图形界面面向日常操作，命令行面向批处理与脚本。
@@ -11,6 +11,11 @@
   目录的勾选框会把该目录下的 wad 一起勾上（部分勾选显示为半选）。
   「全选 / 清空」只作用于当前显示的项（有搜索时就是搜索结果），不会顺带勾上被过滤掉的 wad。
   三栏之间的竖条可以拖动，按需要把 wad 列表、目录树或预览面板放宽。
+- **客户端资产（跟着路径走）**：左边路径框指到哪里就扫到哪里。指到安装根目录时，`Game\DATA` 与
+  `LeagueClient\plugins\*.wad` 一起列出，客户端包在旁边单独成 `LeagueClient` 节点；指到 `Game\DATA`
+  就只扫游戏包，指到 `…\LeagueClient\plugins` 就只扫客户端包，不往上找、也不替换你选的目录。
+  英雄/装备文本、图标路径、英雄头像、皮肤原画都在客户端包里（游戏包本身只有载入图与 HUD 头像，
+  从来没有原画和元数据 JSON）；条目名用 CommunityDragon 的 `hashes.lcu.txt` 还原，浏览、预览、导出与游戏包完全一致。
 - **名称还原**：用 CommunityDragon 哈希表把哈希还原成真实路径（本机实测 99.9%）。
 - **树形浏览**：条目按「类别 → 目录 → 文件」分组，单链目录自动展开，可按路径/哈希搜索、按类别过滤；
   每行带勾选框，勾目录等于勾它下面全部条目，勾选结果换搜索也不会丢。
@@ -29,7 +34,6 @@
   导出范围可选「选择的 wad / 当前 wad / 全部 wad / 当前 wad 选中的内容」，类别可一键「仅纹理 / 仅模型 / 仅音频」，
   最后一项只导出目录树里勾选的条目（勾目录等于勾它下面全部），这时路径过滤 / 目录前缀 / 扩展名让位给勾选本身，
   还能用目录前缀只导某个英雄或某层目录（树右键「导出此目录」「导出此文件」「设为导出前缀」）。
-  另有「只导出图片 / 音频（PNG + MP3）」一键按钮，跳过模型与数据，只留能直接看、直接听的媒体。
   预览页右上角的「导出此文件」只导出当前条目：音频包导出的是音频列表里**选中的那一条流**，
   文件名与整包导出时一致（`<条目名>/002 83226497.mp3`），两者字节完全相同。
 - **音频备注与语音转写**：音频包里每条流都能写备注，改动即存到 `%LOCALAPPDATA%\LolDataExtractor\audio-notes.json`，
@@ -48,6 +52,7 @@
 | 名称还原率 | 99.9%（823,519 条） |
 | 全量扫描耗时 | 约 1 秒 |
 | 贴图解码 | 160/160 张成功，最慢 21 ms |
+| 客户端插件包 | 51 个 wad，6.97 GB，63,582 个条目（英雄/装备文本、头像、原画） |
 
 ## 依赖与来源
 
@@ -80,15 +85,17 @@ dotnet run --project src/LolDataExtractor.App
 dist\app\LolDataExtractor.exe
 ```
 
-1. 顶部填写或浏览到游戏安装目录下的 `Game\DATA`，点「扫描」。填安装目录或 `Game` 目录也行，
-   框里会原样保留你填的路径，下面一行小字写着这次实际扫描的 `Game\DATA`。
-2. 首次使用点「下载哈希表」（约 222 MB，只下一次；已存在的分片自动跳过）。
+1. 顶部填写或浏览到游戏目录，点「扫描」。填安装根目录就把游戏包与客户端包一起列出来，填 `Game\DATA`
+   就只列游戏包；框里原样保留你填的路径。
+2. 首次使用点「下载哈希表」（约 222 MB，只下一次；已存在的分片自动跳过），随后再取一份客户端哈希表
+   （17 MB）；两个索引建好后，英雄/装备文本与头像、原画就能按真实路径浏览。
 3. 左侧勾选 wad（「全选」只勾当前显示的项，搜索后就是搜索结果；全选后按钮变为「全不选」），
    中间在目录树里点开文件，右侧「预览」页查看内容。
+   客户端包里原样浏览：文本 JSON 直接显示，头像与原画（`.png` / `.jpg`）直接出图。
    选中 `.skn` / `.scb` 模型后，贴图 / 骨骼 / 动画三个下拉已自动填好，点「播放」看动画；不对就用「…」手动挑。
-4. 右侧「导出与日志」页设置导出范围、输出目录、类别、目录前缀、过滤条件与线程数，点「开始导出」。
-   只想拿能直接看的资源就点「只导出图片 / 音频（PNG + MP3）」；「预览」页右上角的「导出此文件」
-   可直接导出当前条目（同样会转格式，音频包只导出音频列表里选中的那一条流），目录树右键还能「导出此目录」。
+4. 右侧「导出」页设置导出范围、输出目录、类别、目录前缀、过滤条件与线程数，点「开始导出」；
+   「预览」页右上角的「导出此文件」可直接导出当前条目（同样会转格式，音频包只导出音频列表里选中的那一条流），
+   目录树右键还能「导出此目录」。日志在「日志」页单独一页，可一键清空。
 5. 打开音频包（`.wpk` / `_audio.bnk`）后，右侧音频区可「播放」「转换」（转成文字进备注）或「批量转换」；
    备注框随手可改，改完即存。
 
@@ -113,6 +120,10 @@ dotnet run --project src/LolDataExtractor.Cli -- extract --wad <wad> --out D:\Lo
 
 # 只要二次解析后的媒体：贴图 PNG + 语音 MP3，其余一概不导出
 dotnet run --project src/LolDataExtractor.Cli -- media --wad <wad>.zh_CN --out D:\LoLAssets
+
+# 客户端资产：--root 指到安装根目录，list / scan / extract / media 就一起带上 LeagueClient\plugins 下的包
+dotnet run --project src/LolDataExtractor.Cli -- list <客户端 wad> --root <安装目录> --filter=*v1/champions/*.json
+dotnet run --project src/LolDataExtractor.Cli -- extract --root <安装目录> --wad <客户端 wad> --filter=*champion-icons* --out D:\LoLAssets
 ```
 
 常用参数：`--root` 游戏 DATA 目录、`--wad` wad 通配符、`--filter` 路径通配符、`--path` 目录前缀、
@@ -122,6 +133,8 @@ dotnet run --project src/LolDataExtractor.Cli -- media --wad <wad>.zh_CN --out D
 
 `--root` 无效时直接报错，不会悄悄换成别的安装目录。
 
+客户端包跟着 `--root` 走：指到安装根目录时一起列出 `LeagueClient\plugins` 下的包，指到 `Game\DATA` 时只扫游戏包。
+
 ## 工具数据目录
 
 `%LOCALAPPDATA%\LolDataExtractor`
@@ -130,6 +143,8 @@ dotnet run --project src/LolDataExtractor.Cli -- media --wad <wad>.zh_CN --out D
 | --- | --- |
 | `hashtable\hashes.game.txt.0..8` | 原始哈希表（文本，222 MB） |
 | `hashtable\names.idx` | 名称索引：只保留本地 wad 用到的项（68 MB，冷启动约 0.5 s） |
+| `hashtable\client\hashes.lcu.txt` | 客户端哈希表（插件路径，17 MB，随「下载哈希表」一起取） |
+| `hashtable\client\client-names.idx` | 客户端名称索引（156,243 条，约 9 MB） |
 | `tools\vgmstream\` | 音频解码工具（首次试听时下载，约 4.6 MB） |
 | `tools\whisper\ggml-base.bin` | 语音识别模型（141 MB，首次「转换」时从 hf-mirror 下载，也可手动放入） |
 | `audio-notes.json` | 每条音频流的备注与转写结果（按 wad + 条目哈希 + 流序号索引） |
@@ -142,6 +157,9 @@ dotnet run --project src/LolDataExtractor.Cli -- media --wad <wad>.zh_CN --out D
   数据以未压缩 / zstd / zstd 分块存储。
 - **名称还原**：扫描本地 wad 得到全部条目哈希，与哈希表文本求交集后写入 `names.idx`；
   查询时二分查找哈希，再从 UTF-8 路径池取字符串。
+- **客户端包**：`LeagueClient\plugins\*.wad` 与游戏包同为 wad v3 容器，只是路径前缀是
+  `plugins\<插件>\global\<语言>\…`，属于另一套哈希空间，所以另建 `client-names.idx`；
+  两套表在内存里按哈希合并成一张，浏览与导出走同一套代码。
 - **内容识别**：DDS `DDS `、纹理 `TEX\0`、静态模型 `r3d2Mesh`、骨骼 `0x22FD4FC3`、网格 `0x00112233`、
   动画 `r3d2anmd`/`r3d2canm`、数据 `PROP`、音频包 `BKHD`、`RIFF…WAVE`、纯文本等，
   未命名条目据此补扩展名并落到 `_unnamed\<哈希前两位>\<哈希>.<扩展名>`。
@@ -182,14 +200,14 @@ dotnet run --project src/LolDataExtractor.Cli -- media --wad <wad>.zh_CN --out D
 - 音频必须是 Wwise 的 wem（fmt 0xFFFF）。角色音效在 `.bnk`（`_audio.bnk` 有流，`_events.bnk` 只有事件），
   语音在 `.wpk`（`r3d2` 容器，逐条 wem）；少数 `_vo_audio.bnk` 只有元数据，预览会自动切到同名的 `.wpk`。
   试听依赖 vgmstream，缺失时界面提供一键下载。
-- 不写入游戏目录：所有读取只针对 `DATA` 下的 wad，输出只写到用户指定目录。
+- 不写入游戏目录：所有读取只针对 `DATA` 与 `LeagueClient\plugins` 下的 wad，输出只写到用户指定目录。
 - Windows 路径上限 260 字符，超长文件名会截断并追加 10 位哈希后缀（仍然唯一、可直接打开）。
 
 ## 开发
 
 ```powershell
 dotnet build LolDataExtractor.sln
-dotnet test tests\LolDataExtractor.Tests      # 192 项：哈希/名称表/识别/过滤/安装目录/合成 wad 解包/
+dotnet test tests\LolDataExtractor.Tests      # 203 项：哈希/名称表/识别/过滤/安装目录/合成 wad 解包/
                                              # 树构建/贴图解码/Wwise 与 WPK 解析/模型解析/骨骼动画/资源匹配/贴图分配/
                                              # PNG 编码/媒体格式规划/备注存储/转写语言/版本信息/预览分派/编码守卫
 tools\check.ps1                               # 构建 + 测试 + 编码体检（UTF-8 无 BOM + LF）
@@ -213,6 +231,7 @@ tools\make-icon.ps1                           # 由 logo.png 重新生成 Assets
 src/LolDataExtractor.Core   解析、预览解码与导出核心（无 UI 依赖）
   Preview/                  WwiseBank（bnk + wpk）、TextureDecoder、ModelDecoder、SkeletonData、
                             AnimationClip、Skinning、AssetLinker、TextureBinder、PreviewService、VgmstreamTool
+  LolClient.cs              客户端插件包的定位（LeagueClient\plugins）与相对路径
   MediaExporter.cs          贴图/音频转 PNG、MP3、WAV（含 Mp3Encoder）
   PngEncoder.cs             自带 PNG 编码器（RGBA8，Sub 滤波 + zlib）
   SpeechRecognizer.cs       whisper 模型下载与转写（Transcriber）

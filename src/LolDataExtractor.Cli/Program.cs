@@ -84,13 +84,21 @@ internal static class Program
             公共选项: --data-dir 目录   覆盖工具数据目录（存放哈希表与索引）
                       --root 路径       游戏 DATA 目录（默认读取上一次使用的配置）
 
+            --root 指到游戏 DATA 时只扫游戏包；指到安装根目录时，LeagueClient\plugins 下的
+            客户端包（英雄/装备文本、头像、原画）一起列出。
+
             类别取值: texture, model, audio, bin, text, shader, other
             """);
     }
 
-    private static string? ResolveRoot(AppSettings settings, CommandLine parsed)
+    /// <summary>
+    /// 游戏 DATA 目录（规范化后写回配置）。<paramref name="clientRoot"/> 是同一个路径下的客户端
+    /// 包目录：指到安装根目录就有，指到 <c>Game\DATA</c> 就没有——扫什么是路径决定的。
+    /// </summary>
+    private static string? ResolveRoot(AppSettings settings, CommandLine parsed, out string? clientRoot)
     {
         var root = parsed.Get("root") ?? settings.DataRoot;
+        clientRoot = LolClient.TryLocatePlugins(root);
         var resolved = LolInstall.TryLocate(root);
         if (resolved is null)
         {
@@ -107,12 +115,14 @@ internal static class Program
 
     private static NameTable LoadNames(AppSettings settings)
     {
+        var client = LoadClientNames(settings);
+
         foreach (var path in new[] { settings.NamesIndexPath })
         {
             if (!File.Exists(path)) continue;
             try
             {
-                return NameTable.LoadBinary(path);
+                return NameTable.LoadBinary(path).Union(client);
             }
             catch (Exception ex)
             {
@@ -126,22 +136,42 @@ internal static class Program
             Console.WriteLine($"正在解析文本哈希表（{textFiles.Count} 个文件）…");
             var table = NameTable.LoadTextFiles(textFiles);
             Console.WriteLine($"已载入 {table.Count} 条路径");
-            return table;
+            return table.Union(client);
         }
+
+        if (!client.IsEmpty) return client;
 
         Console.WriteLine("提示: 未找到名称索引，条目将以哈希命名。请先运行 loldata hashes fetch --build");
         return NameTable.Empty;
     }
 
+    /// <summary>The client (LCU) name table, empty when it was never downloaded.</summary>
+    private static NameTable LoadClientNames(AppSettings settings)
+    {
+        try
+        {
+            return NameTable.LoadBinaryOrEmpty(settings.ClientNamesPath);
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"客户端名称索引读取失败: {ex.Message}");
+            return NameTable.Empty;
+        }
+    }
+
     private static int Info(AppSettings settings, CommandLine parsed)
     {
-        var dataRoot = LolInstall.TryLocate(parsed.Get("root") ?? settings.DataRoot);
+        var hint = parsed.Get("root") ?? settings.DataRoot;
+        var dataRoot = LolInstall.TryLocate(hint);
+        var clientRoot = LolClient.TryLocatePlugins(hint);
         Console.WriteLine($"英雄联盟数据提取工具 {AppInfo.Version}（{AppInfo.ReleaseDate} 发布）");
         Console.WriteLine($"游戏 DATA 目录 : {dataRoot ?? "(未找到)"}");
         Console.WriteLine($"输出目录       : {settings.OutputRoot}");
         Console.WriteLine($"工具数据目录   : {settings.DataDirectory}");
         Console.WriteLine($"哈希表目录     : {settings.HashTableDirectory}");
         Console.WriteLine($"名称索引       : {settings.NamesIndexPath} {(File.Exists(settings.NamesIndexPath) ? "(已生成)" : "(未生成)")}");
+        Console.WriteLine($"客户端插件目录 : {clientRoot ?? "(未包含，--root 指到安装根目录即可)"}");
+        Console.WriteLine($"客户端名称索引 : {settings.ClientNamesPath} {(File.Exists(settings.ClientNamesPath) ? "(已生成)" : "(未生成)")}");
 
         if (dataRoot is not null)
         {
@@ -149,6 +179,13 @@ internal static class Program
             Console.WriteLine($"wad 数量       : {wads.Count}");
             var totalSize = wads.Sum(w => new FileInfo(w).Length);
             Console.WriteLine($"wad 总大小     : {ExtractionSummary.Format(totalSize)}");
+        }
+
+        if (clientRoot is not null)
+        {
+            var clientWads = LolClient.EnumerateWadFiles(clientRoot);
+            Console.WriteLine($"客户端 wad 数量 : {clientWads.Count}");
+            Console.WriteLine($"客户端 wad 大小 : {ExtractionSummary.Format(clientWads.Sum(w => new FileInfo(w).Length))}");
         }
 
         if (File.Exists(settings.NamesIndexPath))
@@ -162,12 +199,17 @@ internal static class Program
 
     private static int Scan(AppSettings settings, CommandLine parsed)
     {
-        var dataRoot = ResolveRoot(settings, parsed);
+        var dataRoot = ResolveRoot(settings, parsed, out var clientRoot);
         if (dataRoot is null) return 1;
 
         Console.WriteLine($"扫描 {dataRoot} …");
         var timer = Stopwatch.StartNew();
-        var summaries = WadCatalog.Scan(dataRoot);
+        var summaries = WadCatalog.Scan(dataRoot).ToList();
+        if (clientRoot is not null)
+        {
+            Console.WriteLine($"客户端包 {clientRoot} …");
+            summaries.AddRange(WadCatalog.ScanClient(clientRoot));
+        }
         timer.Stop();
 
         Console.WriteLine($"{"wad",-42}{"条目",8}{"展开大小",12}  压缩方式");
@@ -194,10 +236,10 @@ internal static class Program
 
     private static int List(AppSettings settings, CommandLine parsed)
     {
-        var dataRoot = ResolveRoot(settings, parsed);
+        var dataRoot = ResolveRoot(settings, parsed, out var clientRoot);
         if (dataRoot is null) return 1;
         var pattern = parsed.Positionals.FirstOrDefault() ?? parsed.Get("wad") ?? "*";
-        var wads = MatchWads(dataRoot, pattern);
+        var wads = MatchWads(dataRoot, clientRoot, pattern);
         if (wads.Count == 0)
         {
             Console.Error.WriteLine($"没有匹配 {pattern} 的 wad");
@@ -237,7 +279,7 @@ internal static class Program
     /// </summary>
     private static int Extract(AppSettings settings, CommandLine parsed, bool mediaOnly = false)
     {
-        var dataRoot = ResolveRoot(settings, parsed);
+        var dataRoot = ResolveRoot(settings, parsed, out var clientRoot);
         if (dataRoot is null) return 1;
 
         var output = parsed.Get("out") ?? settings.OutputRoot;
@@ -248,7 +290,7 @@ internal static class Program
         }
 
         var wadPattern = parsed.Get("wad") ?? "*";
-        var wads = MatchWads(dataRoot, wadPattern);
+        var wads = MatchWads(dataRoot, clientRoot, wadPattern);
         if (wads.Count == 0)
         {
             Console.Error.WriteLine($"没有匹配 {wadPattern} 的 wad");
@@ -320,6 +362,22 @@ internal static class Program
                 var result = fetcher.FetchAsync(directory, parsed.Get("token"), progress).GetAwaiter().GetResult();
                 Console.WriteLine();
                 Console.WriteLine($"哈希表就绪: 下载 {result.Downloaded} 个、跳过 {result.Skipped} 个，共 {ExtractionSummary.Format(result.Bytes)}，目录 {directory}");
+
+                // 客户端插件包用另一张表（插件路径），单独下载、单独建索引
+                try
+                {
+                    var clientDirectory = Path.Combine(directory, "client");
+                    var clientText = fetcher.FetchClientTableAsync(clientDirectory, parsed.Get("token"), progress).GetAwaiter().GetResult();
+                    var clientTable = NameTable.LoadTextFiles(new[] { clientText });
+                    var clientIndex = Path.Combine(clientDirectory, "client-names.idx");
+                    clientTable.SaveBinary(clientIndex);
+                    Console.WriteLine($"客户端名称索引: {clientTable.Count:N0} 条 → {clientIndex}");
+                }
+                catch (Exception ex)
+                {
+                    Console.Error.WriteLine($"客户端哈希表未更新: {ex.Message}");
+                }
+
                 if (parsed.Has("build"))
                 {
                     settings.DataDirectory = Directory.GetParent(directory)?.FullName ?? settings.DataDirectory;
@@ -362,7 +420,7 @@ internal static class Program
 
         if (scope)
         {
-            var dataRoot = ResolveRoot(settings, parsed);
+            var dataRoot = ResolveRoot(settings, parsed, out _);
             if (dataRoot is not null)
             {
                 var hashes = new HashSet<ulong>();
@@ -382,13 +440,18 @@ internal static class Program
         return 0;
     }
 
-    private static IReadOnlyList<string> MatchWads(string dataRoot, string pattern)
+    private static IReadOnlyList<string> MatchWads(string dataRoot, string? clientRoot, string pattern)
     {
         // 不含通配符的名称按“包含”匹配，方便直接写 Ahri 而不是 Ahri.wad.client
         var regex = ExtractionFilter.GlobToRegex(pattern.Contains('*') || pattern.Contains('?') ? pattern : $"*{pattern}*");
-        return LolInstall.EnumerateWadFiles(dataRoot)
-            .Where(path => regex.IsMatch(Path.GetFileName(path)) || regex.IsMatch(LolInstall.GetRelativeName(dataRoot, path)))
-            .ToArray();
+        var game = LolInstall.EnumerateWadFiles(dataRoot)
+            .Where(path => regex.IsMatch(Path.GetFileName(path)) || regex.IsMatch(LolInstall.GetRelativeName(dataRoot, path)));
+
+        if (clientRoot is null) return game.ToArray();
+
+        var client = LolClient.EnumerateWadFiles(clientRoot)
+            .Where(path => regex.IsMatch(Path.GetFileName(path)) || regex.IsMatch(LolClient.RelativePath(clientRoot, path)));
+        return game.Concat(client).ToArray();
     }
 
     private static ExtractionFilter BuildFilter(CommandLine parsed)

@@ -112,6 +112,60 @@ public sealed class NameTable
         return FromMap(map);
     }
 
+    /// <summary>
+    /// Merges another table in. Both sides are sorted by hash, so this is one pass; when both know
+    /// a hash the entry of this table wins. Used to serve the game and the client name space from
+    /// one lookup.
+    /// </summary>
+    public NameTable Union(NameTable other)
+    {
+        if (other.IsEmpty) return this;
+        if (IsEmpty) return other;
+
+        var capacity = _hashes.Length + other._hashes.Length;
+        var hashes = new ulong[capacity];
+        var offsets = new int[capacity + 1];
+        var blob = new MemoryStream(_blob.Length + other._blob.Length);
+
+        int i = 0, j = 0, k = 0;
+        while (i < _hashes.Length || j < other._hashes.Length)
+        {
+            int order;
+            if (i >= _hashes.Length) order = 1;
+            else if (j >= other._hashes.Length) order = -1;
+            else order = _hashes[i].CompareTo(other._hashes[j]);
+
+            ReadOnlySpan<byte> path;
+            ulong hash;
+            if (order < 0)
+            {
+                hash = _hashes[i];
+                path = _blob.AsSpan(_offsets[i], _offsets[i + 1] - _offsets[i]);
+                i++;
+            }
+            else if (order > 0)
+            {
+                hash = other._hashes[j];
+                path = other._blob.AsSpan(other._offsets[j], other._offsets[j + 1] - other._offsets[j]);
+                j++;
+            }
+            else
+            {
+                hash = _hashes[i];
+                path = _blob.AsSpan(_offsets[i], _offsets[i + 1] - _offsets[i]);
+                i++;
+                j++;
+            }
+
+            hashes[k] = hash;
+            blob.Write(path);
+            offsets[k + 1] = offsets[k] + path.Length;
+            k++;
+        }
+
+        return new NameTable(hashes[..k], offsets[..(k + 1)], blob.ToArray());
+    }
+
     public void SaveBinary(string filePath)
     {
         var directory = Path.GetDirectoryName(Path.GetFullPath(filePath));

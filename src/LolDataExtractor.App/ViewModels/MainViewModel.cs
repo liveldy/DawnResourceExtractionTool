@@ -25,6 +25,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private readonly Stopwatch _clock = new();
 
     private NameTable _names = NameTable.Empty;
+
+    /// <summary>Name table of the client archives; merged into <see cref="_names"/> at load time.</summary>
+    private NameTable _clientNames = NameTable.Empty;
+
     private List<WadEntryInfo> _currentEntries = new();
 
     /// <summary>Hashes ticked in the browser; survives filtering so a search cannot lose them.</summary>
@@ -33,7 +37,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private WadItem? _selectedWad;
     private TreeNodeVm? _selectedNode;
     private string _dataRootText = string.Empty;
-    private string _gameRootHint = string.Empty;
     private string _outputRootText = string.Empty;
     private string _hashStatus = "名称索引：未生成";
     private string _searchText = string.Empty;
@@ -134,7 +137,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         SelectAllCommand = new RelayCommand(ToggleSelectAll);
         SelectNoneCommand = new RelayCommand(() => SetSelection(false));
         ExportCommand = new RelayCommand(async () => await ExportAsync(), () => !IsBusy);
-        ExportMediaCommand = new RelayCommand(async () => await ExportAsync(mediaOnly: true), () => !IsBusy);
         CancelCommand = new RelayCommand(Cancel, () => IsBusy);
         DownloadHashesCommand = new RelayCommand(async () => await DownloadHashesAsync(), () => !IsBusy);
         OpenOutputCommand = new RelayCommand(OpenOutputFolder);
@@ -211,9 +213,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     public RelayCommand ExportCommand { get; }
 
-    /// <summary>Exports only the second-pass media: png textures and mp3 audio.</summary>
-    public RelayCommand ExportMediaCommand { get; }
-
     public RelayCommand CancelCommand { get; }
 
     public RelayCommand DownloadHashesCommand { get; }
@@ -268,16 +267,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     {
         get => _dataRootText;
         set => SetProperty(ref _dataRootText, value);
-    }
-
-    /// <summary>
-    /// The DATA folder actually being scanned. The box may hold an install folder or a Game folder:
-    /// those are recognized as their DATA folder rather than overwriting what the user picked.
-    /// </summary>
-    public string GameRootHint
-    {
-        get => _gameRootHint;
-        private set => SetProperty(ref _gameRootHint, value);
     }
 
     public string OutputRootText
@@ -756,7 +745,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
         await RunBusyAsync("读取名称索引…", async () =>
         {
-            _names = await Task.Run(() => NameTable.LoadBinaryOrEmpty(_settings.NamesIndexPath));
+            var game = await Task.Run(() => NameTable.LoadBinaryOrEmpty(_settings.NamesIndexPath));
+            _clientNames = await Task.Run(() => NameTable.LoadBinaryOrEmpty(_settings.ClientNamesPath));
+            _names = _clientNames.IsEmpty ? game : game.Union(_clientNames);
             HashStatus = _names.IsEmpty
                 ? "名称索引：未生成（条目将以哈希命名，点击「下载哈希表」）"
                 : $"名称索引：{_names.Count:N0} 条路径";
@@ -780,26 +771,33 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private async Task ScanAsync()
     {
         var typed = DataRootText?.Trim() ?? string.Empty;
+
+        // What gets scanned is decided by the folder that was picked, never by climbing out of it:
+        // the install folder encloses both Game\DATA and LeagueClient\plugins, a DATA folder only
+        // the game archives, a plugins folder only the client ones.
         var root = LolInstall.TryLocate(typed);
-        if (root is null)
+        var clientRoot = LolClient.TryLocatePlugins(typed);
+        if (root is null && clientRoot is null)
         {
             // Never jump to another installation: keep what the user typed and say so.
             StatusText = string.IsNullOrWhiteSpace(typed)
                 ? "请先填写游戏 Game\\DATA 目录"
-                : $"未能识别游戏目录：{typed}（请选到 …\\Game\\DATA）";
-            GameRootHint = string.IsNullOrWhiteSpace(typed) ? "未设置游戏目录" : "未识别，请选到 …\\Game\\DATA";
+                : $"未能识别游戏目录：{typed}（请选到 …\\Game\\DATA 或安装目录）";
             Log(StatusText);
             return;
         }
 
         // The box keeps what the user picked: an install folder or a Game folder already means its
         // DATA folder, and every wad of an installation lives there. Rewriting the box made a switch
-        // that had worked look like it was rejected, so the resolved folder is reported instead.
-        _settings.DataRoot = Path.IsPathRooted(typed) ? typed : root;
-        _settings.Save();
-        var rewritten = !string.Equals(typed.Trim('"'), root, StringComparison.OrdinalIgnoreCase);
-        GameRootHint = rewritten ? $"已识别为游戏 DATA 目录：{root}" : $"游戏 DATA 目录：{root}";
-        if (rewritten) Log($"游戏目录：{typed} → {root}");
+        // that had worked look like it was rejected, so nothing is normalized into it.
+        if (!string.IsNullOrWhiteSpace(typed))
+        {
+            _settings.DataRoot = Path.IsPathRooted(typed) ? typed : root;
+            _settings.Save();
+        }
+
+        if (root is not null && !string.Equals(typed.Trim('"'), root, StringComparison.OrdinalIgnoreCase))
+            Log($"游戏目录：{typed} → {root}");
 
         await RunBusyAsync("扫描 wad 文件…", async () =>
         {
@@ -821,11 +819,25 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             UpdateSelectionSummary();
 
             var timer = Stopwatch.StartNew();
-            var summaries = await Task.Run(() => WadCatalog.Scan(root, progress));
+            var summaries = await Task.Run(() =>
+            {
+                var list = root is null ? new List<WadSummary>() : WadCatalog.Scan(root, progress).ToList();
+                if (clientRoot is not null) list.AddRange(WadCatalog.ScanClient(clientRoot, progress));
+                return list;
+            });
             timer.Stop();
 
-            StatusText = $"共 {summaries.Count} 个 wad，{summaries.Sum(s => s.EntryCount):N0} 个条目，用时 {timer.Elapsed.TotalSeconds:F1}s";
-            Log($"扫描完成：{summaries.Count} 个 wad，{summaries.Sum(s => s.EntryCount):N0} 个条目");
+            var clientWads = summaries.Count(s => s.IsClient);
+            var gameWads = summaries.Count - clientWads;
+            var scope = (gameWads, clientWads) switch
+            {
+                (> 0, > 0) => $"{gameWads} 个游戏 wad + {clientWads} 个客户端 wad",
+                (0, > 0) => $"{clientWads} 个客户端 wad",
+                _ => $"{gameWads} 个 wad",
+            };
+            var entries = summaries.Sum(s => s.EntryCount);
+            StatusText = $"共 {scope}，{entries:N0} 个条目，用时 {timer.Elapsed.TotalSeconds:F1}s";
+            Log($"扫描完成：共 {scope}，{entries:N0} 个条目");
 
             RebuildWadTree();
             if (Wads.Count > 0) SelectedWad = Wads.OrderByDescending(w => w.EntryCount).First();
@@ -959,10 +971,16 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         foreach (var root in roots.OrderBy(node => node.IsFolder ? 0 : 1)
                      .ThenBy(node => node.Name, StringComparer.OrdinalIgnoreCase))
         {
-            root.ExpandAll();
+            root.ExpandAll(AutoExpandWads);
             WadRoots.Add(root);
         }
     }
+
+    /// <summary>
+    /// Folders up to this many wads open themselves. The game tree holds one folder with 576 wads,
+    /// which used to bury the client assets below a wall of rows.
+    /// </summary>
+    private const int AutoExpandWads = 20;
 
     /// <summary>Walks one folder level of <paramref name="segments"/> and hangs the wad leaf on the end.</summary>
     private static void AddWadNode(ObservableCollection<WadTreeNode> level, WadTreeNode? parent,
@@ -1687,11 +1705,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     }
 
     /// <summary>
-    /// 导出：<paramref name="wadsOverride"/> 与 <paramref name="categoryOverride"/> 供目录导出使用；
-    /// <paramref name="mediaOnly"/> 只导出二次解析后的媒体（贴图 → PNG，音频 → MP3）。
+    /// 导出：<paramref name="wadsOverride"/> 与 <paramref name="categoryOverride"/> 供目录导出使用。
     /// </summary>
-    private async Task ExportAsync(IReadOnlyCollection<string>? wadsOverride = null, string? categoryOverride = null,
-        bool mediaOnly = false)
+    private async Task ExportAsync(IReadOnlyCollection<string>? wadsOverride = null, string? categoryOverride = null)
     {
         var selected = wadsOverride?.ToList() ?? ResolveExportWads();
         if (selected.Count == 0)
@@ -1706,11 +1722,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             return;
         }
 
-        var categories = mediaOnly
-            ? new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "texture", "audio" }
-            : categoryOverride is null
-                ? SelectedExportCategories()
-                : new HashSet<string>(StringComparer.OrdinalIgnoreCase) { categoryOverride };
+        var categories = categoryOverride is null
+            ? SelectedExportCategories()
+            : new HashSet<string>(StringComparer.OrdinalIgnoreCase) { categoryOverride };
 
         var filter = new ExtractionFilter
         {
@@ -1735,15 +1749,13 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             FlatLayout = OptionFlat,
             SkipExisting = OptionSkipExisting,
             Threads = int.TryParse(ThreadCount, out var threads) ? Math.Clamp(threads, 1, 64) : 8,
-            MediaOnly = mediaOnly,
-            ConvertTextures = mediaOnly || OptionConvertTextures,
-            AudioFormat = mediaOnly ? AudioExportFormat.Mp3 : SelectedAudioFormat.Value,
+            ConvertTextures = OptionConvertTextures,
+            AudioFormat = SelectedAudioFormat.Value,
         };
 
         _settings.OutputRoot = options.OutputRoot;
         _settings.Save();
 
-        if (mediaOnly) Log("只导出可用媒体：贴图转 PNG，音频转 MP3");
         Log($"导出开始：{selected.Count} 个 wad · 范围「{SelectedExportScope}」" +
             (filter.PathPrefix is null ? string.Empty : $" · 目录 {filter.PathPrefix}") +
             (filter.ExactPaths is { Count: > 0 } exact ? $" · 条目 {string.Join("、", exact)}" : string.Empty) +
@@ -2231,7 +2243,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 var hashes = await Task.Run(() =>
                 {
                     var set = new HashSet<ulong>();
-                    foreach (var wad in Wads)
+                    foreach (var wad in Wads.Where(w => !w.IsClient))
                     {
                         using var archive = WadArchive.Open(wad.FullPath);
                         foreach (var entry in archive.ReadEntries(null)) set.Add(entry.Hash);
@@ -2244,9 +2256,27 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             }
 
             await Task.Run(() => table.SaveBinary(_settings.NamesIndexPath));
-            _names = table;
-            HashStatus = $"名称索引：{_names.Count:N0} 条路径";
             Log($"名称索引已写入 {_settings.NamesIndexPath}（{ExtractionSummary.Format(new FileInfo(_settings.NamesIndexPath).Length)}）");
+
+            // The client archives have their own name space; its table is a single 17 MB file.
+            NameTable clientTable;
+            try
+            {
+                StatusText = "下载客户端哈希表…";
+                var clientText = await fetcher.FetchClientTableAsync(_settings.ClientTableDirectory, token: null, progress: progress);
+                clientTable = await Task.Run(() => NameTable.LoadTextFiles(new[] { clientText }));
+                await Task.Run(() => clientTable.SaveBinary(_settings.ClientNamesPath));
+                Log($"客户端名称索引已写入 {_settings.ClientNamesPath}（{clientTable.Count:N0} 条）");
+            }
+            catch (Exception ex)
+            {
+                clientTable = _clientNames;
+                Log("客户端哈希表未更新：" + ex.Message);
+            }
+
+            _clientNames = clientTable;
+            _names = clientTable.IsEmpty ? table : table.Union(clientTable);
+            HashStatus = $"名称索引：{_names.Count:N0} 条路径";
 
             if (SelectedWad is not null) await LoadEntriesAsync(SelectedWad);
         });

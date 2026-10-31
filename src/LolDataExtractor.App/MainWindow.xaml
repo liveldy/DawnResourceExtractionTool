@@ -50,15 +50,12 @@
                                  Text="{Binding DataRootText, UpdateSourceTrigger=PropertyChanged}"
                                  Tag="游戏 Game\DATA 目录"
                                  KeyDown="DataRootBox_KeyDown"
-                                 ToolTip="英雄联盟安装目录下的 Game\DATA；填安装目录或 Game 目录也可以" />
+                                 ToolTip="填安装根目录会把 LeagueClient\plugins 下的客户端包一起列出；填 Game\DATA 只扫游戏包" />
                         <Button Content="浏览" Margin="6,0,0,0" Width="60"
                                 Style="{StaticResource SecondaryAction}" Command="{Binding BrowseRootCommand}" />
                         <Button Content="扫描" Margin="6,0,0,0" Width="80"
                                 Style="{StaticResource PrimaryAction}" Command="{Binding ScanCommand}" />
                     </StackPanel>
-                    <TextBlock Text="{Binding GameRootHint}" FontSize="11" Margin="2,4,0,0"
-                               Foreground="{StaticResource MutedBrush}" TextTrimming="CharacterEllipsis"
-                               ToolTip="{Binding GameRootHint}" />
                 </StackPanel>
 
                 <TextBlock Grid.Column="2" Text="{Binding HashStatus}" FontSize="11" Margin="12,0"
@@ -474,12 +471,11 @@
                         </Grid>
                     </TabItem>
 
-                    <!-- 导出设置与日志 -->
-                    <TabItem Header="导出与日志">
+                    <!-- 导出设置 -->
+                    <TabItem Header="导出">
                         <Grid Margin="6,8,4,4">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="*" />
-                                <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
@@ -635,10 +631,6 @@
 
                             <!-- 主操作（固定在设置区下方，不用滚动就能点到） -->
                             <Grid Grid.Row="1" Margin="0,8,0,0">
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                </Grid.RowDefinitions>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
@@ -649,11 +641,6 @@
                                 <Button Grid.Column="1" Content="打开输出目录" Height="34" Margin="8,0,0,0"
                                         FontSize="12" Style="{StaticResource SecondaryAction}"
                                         Command="{Binding OpenOutputCommand}" />
-                                <Button Grid.Row="1" Grid.ColumnSpan="2" Height="30" Margin="0,6,0,0"
-                                        FontSize="12" Style="{StaticResource SecondaryAction}"
-                                        Content="只导出图片 / 音频（PNG + MP3）"
-                                        Command="{Binding ExportMediaCommand}"
-                                        ToolTip="跳过模型、数据等原始文件，只导出二次解析后可直接查看的图片与音频" />
                             </Grid>
 
                             <!-- 进度区 -->
@@ -704,36 +691,38 @@
                                     </Grid>
                                 </StackPanel>
                             </Border>
+                        </Grid>
+                    </TabItem>
 
-                            <!-- 日志区 -->
-                            <Grid Grid.Row="3" Margin="0,10,0,0">
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="96" />
-                                </Grid.RowDefinitions>
+                    <!-- 日志 -->
+                    <TabItem Header="日志">
+                        <Grid Margin="6,8,4,4">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
 
-                                <Grid Grid.Row="0" Margin="0,0,0,6">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Text="日志" Style="{StaticResource SectionTitle}" VerticalAlignment="Center"
-                                               Margin="0" />
-                                    <Button Grid.Column="1" Content="清空" Width="52" Height="24" FontSize="11"
-                                            Style="{StaticResource SecondaryAction}"
-                                            Command="{Binding ClearLogCommand}" />
-                                </Grid>
-
-                                <ListBox Grid.Row="1" ItemsSource="{Binding Logs}" BorderThickness="1" BorderBrush="#E4E7EC"
-                                         FontSize="11" Background="#FBFCFD"
-                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                                    <ListBox.ItemTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding}" TextWrapping="Wrap" FontSize="11" />
-                                        </DataTemplate>
-                                    </ListBox.ItemTemplate>
-                                </ListBox>
+                            <Grid Grid.Row="0" Margin="0,0,0,6">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="日志" Style="{StaticResource SectionTitle}" VerticalAlignment="Center"
+                                           Margin="0" />
+                                <Button Grid.Column="1" Content="清空" Width="52" Height="24" FontSize="11"
+                                        Style="{StaticResource SecondaryAction}"
+                                        Command="{Binding ClearLogCommand}" />
                             </Grid>
+
+                            <ListBox Grid.Row="1" ItemsSource="{Binding Logs}" BorderThickness="1" BorderBrush="#E4E7EC"
+                                     FontSize="11" Background="#FBFCFD"
+                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding}" TextWrapping="Wrap" FontSize="11" />
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
                         </Grid>
                     </TabItem>
                 </TabControl>

@@ -24,8 +24,13 @@ public partial class MainWindow : Window
     /// <summary>Self test helper: filters the tree and selects the first matching entry.</summary>
     public Task<bool> SelectEntryAsync(string pattern) => ViewModel.SelectFirstMatchAsync(pattern);
 
-    /// <summary>Self test helper: switches the right panel to the export / log tab.</summary>
-    public void ShowExportTab() => RightTabs.SelectedIndex = 1;
+    /// <summary>Self test helper: switches the right panel to 预览 / 导出 / 日志.</summary>
+    public void ShowTab(string name) => RightTabs.SelectedIndex = name switch
+    {
+        "export" => 1,
+        "log" => 2,
+        _ => 0,
+    };
 
     /// <summary>Typing a folder and pressing Enter scans it, like the「扫描」button does.</summary>
     private void DataRootBox_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)

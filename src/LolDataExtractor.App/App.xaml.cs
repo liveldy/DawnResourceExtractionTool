@@ -28,7 +28,6 @@ public partial class App : Application
         var scope = GetArgument(e.Args, "--export-scope");
         var preset = GetArgument(e.Args, "--export-preset");
         var transcribe = HasFlag(e.Args, "--transcribe");
-        var exportMedia = GetArgument(e.Args, "--export-media");
         var exportStream = GetArgument(e.Args, "--export-stream");
         var wadFilter = GetArgument(e.Args, "--wad-filter");
         var checkAll = HasFlag(e.Args, "--check-all");
@@ -53,13 +52,12 @@ public partial class App : Application
                 window.ViewModel.SelectAllCommand.Execute(null);
                 window.ViewModel.Log("自检：全选后 " + window.ViewModel.SelectionSummary);
             }
-            if (tab is "export") window.ShowExportTab();
+            if (tab is not null) window.ShowTab(tab);
             if (playAnim) await RunAnimationSmokeTestAsync(window);
             if (audioSmoke) await RunAudioSmokeTestAsync(window);
             if (transcribe) await RunTranscribeSmokeTestAsync(window);
             if (exportStream is not null) await RunStreamExportSmokeTestAsync(window, exportStream);
             if (exportOnce is not null) await RunExportSmokeTestAsync(window, exportOnce, scope, preset);
-            if (exportMedia is not null) await RunMediaExportSmokeTestAsync(window, exportMedia);
             if (exportPrefix is not null) await RunPrefixExportAsync(window, exportPrefix);
             if (pick) await RunPickerSmokeTestAsync(window, screenshot);
         }
@@ -124,20 +122,6 @@ public partial class App : Application
         viewModel.Log($"自检：界面导出 {outputDirectory}（范围 {viewModel.SelectedExportScope}，类别 {preset ?? "默认"}）");
         await viewModel.ExportAsync();
         viewModel.Log("自检：导出结束 - " + viewModel.StatusText);
-    }
-
-    /// <summary>自检入口：「只导出图片 / 音频」按钮，产物应全是 PNG 与 MP3。</summary>
-    private static async Task RunMediaExportSmokeTestAsync(MainWindow window, string outputDirectory)
-    {
-        var viewModel = window.ViewModel;
-        viewModel.OutputRootText = outputDirectory;
-        viewModel.SelectedExportScope = MainViewModel.ExportScopes[1];
-
-        viewModel.Log("自检：只导出图片 / 音频 → " + outputDirectory);
-        viewModel.ExportMediaCommand.Execute(null);
-        for (var i = 0; i < 600 && viewModel.IsBusy; i++) await Task.Delay(500);
-
-        viewModel.Log("自检：媒体导出结束 - " + viewModel.StatusText);
     }
 
     private static bool HasFlag(string[] args, string name)

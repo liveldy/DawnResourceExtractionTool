@@ -40,6 +40,13 @@ public sealed class AppSettings
 
     public string NamesIndexPath => Path.Combine(HashTableDirectory, "names.idx");
 
+    /// <summary>Folder of the client name table, kept apart so the game table build never picks it up.</summary>
+    [JsonIgnore]
+    public string ClientTableDirectory => Path.Combine(HashTableDirectory, "client");
+
+    [JsonIgnore]
+    public string ClientNamesPath => Path.Combine(ClientTableDirectory, "client-names.idx");
+
     public static AppSettings Load()
     {
         try
