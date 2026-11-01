@@ -575,6 +575,21 @@ public static class ExtractionService
         return name.EndsWith(suffix, StringComparison.OrdinalIgnoreCase) ? name[..^suffix.Length] : Path.GetFileNameWithoutExtension(name);
     }
 
+    /// <summary>
+    /// The relative path used when a single entry is exported on its own. Audio (wem/bnk/wpk)
+    /// keeps only the container's own name, so a voice package lands in
+    /// <c>输出目录\wad 名\包名.wpk\</c> instead of repeating the whole wad folder tree; everything
+    /// else keeps the structure it has inside the wad.
+    /// </summary>
+    public static string SingleExportRelativePath(WadEntryInfo entry)
+    {
+        var relative = entry.IsNamed
+            ? NormalizeAssetPath(entry.Path!)
+            : Path.Combine("_unnamed", PathHashing.ToText(entry.Hash) + "." + (entry.Extension.Length == 0 ? "bin" : entry.Extension));
+
+        return MediaExporter.IsConvertibleAudio(entry.Extension) ? Path.GetFileName(relative) : relative;
+    }
+
     public static string NormalizeAssetPath(string path)
     {
         var cleaned = path.Replace('\\', '/').TrimStart('/');

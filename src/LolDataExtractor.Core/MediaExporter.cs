@@ -46,7 +46,7 @@ public static class MediaExporter
         {
             var suffix = options.AudioFormat == AudioExportFormat.Wav ? ".wav" : ".mp3";
             return extension is "bnk" or "wpk"
-                ? Path.ChangeExtension(destination, null)!   // a folder for the streams
+                ? destination   // a folder for the streams, named after the container itself
                 : Path.ChangeExtension(destination, suffix);
         }
 
@@ -145,8 +145,9 @@ public static class MediaExporter
                 return new List<string> { target };
             }
 
-            // Several streams: one folder per container, numbered in container order.
-            var folder = Path.ChangeExtension(destination, null)!;
+            // Several streams: one folder per container, numbered in container order. The folder keeps
+            // the container's own name (extension included), so a .wpk is not confused with a .bnk.
+            var folder = destination;
             Directory.CreateDirectory(folder);
             var written = new List<string>();
             foreach (var stream in wavs)

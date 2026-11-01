@@ -153,4 +153,27 @@ public class WadExtractionTests : IDisposable
         Assert.Equal("Ahri", ExtractionService.WadKeyOf("C:\\game\\FINAL\\Champions\\Ahri.wad.client"));
         Assert.Equal("Akali.zh_CN", ExtractionService.WadKeyOf("Akali.zh_CN.wad.client"));
     }
+
+    [Fact]
+    public void Single_export_keeps_only_the_audio_container_name()
+    {
+        // 预览页「导出此文件」导出音频时不再重复 wad 里的深层目录，只留包自己的名字。
+        var voice = new WadEntryInfo(1,
+            "assets/sounds/wwise2016/vo/zh_cn/characters/ahri/skins/base/ahri_base_vo_audio.wpk",
+            0, 0, "Uncompressed", false);
+        Assert.Equal("ahri_base_vo_audio.wpk", ExtractionService.SingleExportRelativePath(voice));
+
+        var sound = new WadEntryInfo(2, "assets/sounds/wwise2016/sfx/characters/ahri/ahri_q_cast.wem",
+            0, 0, "Uncompressed", false);
+        Assert.Equal("ahri_q_cast.wem", ExtractionService.SingleExportRelativePath(sound));
+    }
+
+    [Fact]
+    public void Single_export_keeps_the_folder_tree_for_other_assets()
+    {
+        var texture = new WadEntryInfo(3, "assets/characters/ahri/skins/base/ahri_base.tex",
+            0, 0, "Uncompressed", false);
+        Assert.Equal(Path.Combine("assets", "characters", "ahri", "skins", "base", "ahri_base.tex"),
+            ExtractionService.SingleExportRelativePath(texture));
+    }
 }

@@ -1889,10 +1889,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         {
             try
             {
-                var relative = entry.IsNamed
-                    ? ExtractionService.NormalizeAssetPath(entry.Path!)
-                    : Path.Combine("_unnamed", PathHashing.ToText(entry.Hash) + "." + (entry.Extension.Length == 0 ? "bin" : entry.Extension));
-                var destination = SafePath.Fit(Path.GetFullPath(output), ExtractionService.WadKeyOf(wadPath), relative);
+                var destination = SafePath.Fit(Path.GetFullPath(output), ExtractionService.WadKeyOf(wadPath),
+                    ExtractionService.SingleExportRelativePath(entry));
 
                 using var archive = WadArchive.Open(wadPath);
                 var files = MediaExporter.Export(archive, entry, destination, media, audioStream: streamIndex);

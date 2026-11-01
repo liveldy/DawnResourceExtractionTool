@@ -44,7 +44,7 @@ public class MediaExportTests
         Assert.Equal(@"C:\out\ahri.png", MediaExporter.PredictTarget(@"C:\out\ahri.tex", "tex", options));
         Assert.Equal(@"C:\out\ahri.png", MediaExporter.PredictTarget(@"C:\out\ahri.dds", "dds", options));
         Assert.Equal(@"C:\out\ahri.mp3", MediaExporter.PredictTarget(@"C:\out\ahri.wem", "wem", options));
-        Assert.Equal(@"C:\out\ahri", MediaExporter.PredictTarget(@"C:\out\ahri.bnk", "bnk", options));
+        Assert.Equal(@"C:\out\ahri.bnk", MediaExporter.PredictTarget(@"C:\out\ahri.bnk", "bnk", options));
 
         // Everything else keeps its own path.
         Assert.Equal(@"C:\out\ahri.skn", MediaExporter.PredictTarget(@"C:\out\ahri.skn", "skn", options));
