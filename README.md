@@ -1,4 +1,4 @@
-# 英雄联盟数据提取工具 (LoL Data Extractor) 1.1.1
+# 英雄联盟数据提取工具 (LoL Data Extractor) 1.1.2
 
 ## 功能与特色
 

@@ -21,15 +21,15 @@ public sealed record CatalogSectionInfo(CatalogSection Section, string Display, 
 {
     public static IReadOnlyList<CatalogSectionInfo> All { get; } = new[]
     {
-        new CatalogSectionInfo(CatalogSection.Champion, "英雄", "英雄", "模型、贴图、动画、数据与语音"),
-        new CatalogSectionInfo(CatalogSection.Skin, "皮肤", "皮肤", "原画、载入图、炫彩与系列"),
-        new CatalogSectionInfo(CatalogSection.Item, "装备", "装备", "图标、属性与脚本数据"),
-        new CatalogSectionInfo(CatalogSection.Perk, "符文", "符文", "符文与符文系图标"),
-        new CatalogSectionInfo(CatalogSection.Regalia, "旗帜", "旗帜", "横幅与旗帜"),
-        new CatalogSectionInfo(CatalogSection.Emote, "表情", "表情", "表情图标与套组"),
-        new CatalogSectionInfo(CatalogSection.Icon, "图标", "图标", "召唤师图标与套组"),
-        new CatalogSectionInfo(CatalogSection.SummonerSpell, "召唤师技能", "召唤师技能", "技能图标与数据"),
-        new CatalogSectionInfo(CatalogSection.Ward, "守卫", "守卫", "守卫皮肤图标"),
+        new CatalogSectionInfo(CatalogSection.Champion, "英雄", "Champions", "模型、贴图、动画、数据与语音"),
+        new CatalogSectionInfo(CatalogSection.Skin, "皮肤", "Skins", "原画、载入图、炫彩与系列"),
+        new CatalogSectionInfo(CatalogSection.Item, "装备", "Items", "图标、属性与脚本数据"),
+        new CatalogSectionInfo(CatalogSection.Perk, "符文", "Runes", "符文与符文系图标"),
+        new CatalogSectionInfo(CatalogSection.Regalia, "旗帜", "Regalia", "横幅与旗帜"),
+        new CatalogSectionInfo(CatalogSection.Emote, "表情", "Emotes", "表情图标与套组"),
+        new CatalogSectionInfo(CatalogSection.Icon, "图标", "Icons", "召唤师图标与套组"),
+        new CatalogSectionInfo(CatalogSection.SummonerSpell, "召唤师技能", "SummonerSpells", "技能图标与数据"),
+        new CatalogSectionInfo(CatalogSection.Ward, "守卫", "Wards", "守卫皮肤图标"),
     };
 
     private static readonly Dictionary<string, CatalogSection> ByKey = BuildKeys();

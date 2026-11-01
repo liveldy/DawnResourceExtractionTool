@@ -138,11 +138,10 @@ public partial class App : Application
             MessageBox.Show(ex.Message, "英雄联盟数据提取工具", MessageBoxButton.OK, MessageBoxImage.Error);
         }
 
-        // 资源都就绪了才解锁「进入」：下载途中点一下跳过去，会让人对着空窗口等索引。
+        // 启动工作做完就直接进主窗口，不用再点一下。
         if (splash is not null && !splashPreview)
         {
-            splash.MarkReady();
-            await splash.WaitForSkipAsync();
+            splash.Close();
             window.Show();
             window.Activate();
         }

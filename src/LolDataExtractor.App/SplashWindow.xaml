@@ -3,8 +3,9 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:core="clr-namespace:LolDataExtractor.Core;assembly=LolDataExtractor.Core"
         Title="英雄联盟数据提取工具"
-        WindowStyle="None" ResizeMode="NoResize" WindowState="Maximized"
-        ShowInTaskbar="False" Topmost="True" Background="#0B1220"
+        WindowStyle="None" ResizeMode="NoResize" ShowInTaskbar="False" Topmost="True"
+        WindowStartupLocation="CenterScreen"
+        Background="#0B1220"
         FontFamily="Microsoft YaHei UI, Segoe UI"
         TextOptions.TextFormattingMode="Display">
     <Grid ClipToBounds="True">
@@ -19,42 +20,42 @@
             </Rectangle.Fill>
         </Rectangle>
 
-        <!-- 背景视频：铺满整屏，循环播放 -->
+        <!-- 背景视频：铺满这个小窗口，循环播放 -->
         <MediaElement x:Name="Backdrop" Stretch="UniformToFill" IsMuted="True"
                       LoadedBehavior="Manual" UnloadedBehavior="Manual"
                       MediaEnded="Backdrop_MediaEnded" MediaFailed="Backdrop_MediaFailed" />
 
-        <!-- 压暗上下两端，文字才看得清 -->
+        <!-- 压暗，文字才看得清 -->
         <Rectangle>
             <Rectangle.Fill>
                 <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
                     <GradientStop Color="#A6000000" Offset="0" />
-                    <GradientStop Color="#3D000000" Offset="0.42" />
+                    <GradientStop Color="#52000000" Offset="0.45" />
                     <GradientStop Color="#D9000000" Offset="1" />
                 </LinearGradientBrush>
             </Rectangle.Fill>
         </Rectangle>
 
         <StackPanel x:Name="Centre" HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0">
-            <Image Source="pack://application:,,,/Assets/logo.ico" Width="92" Height="92"
+            <Image Source="pack://application:,,,/Assets/logo.ico" Width="64" Height="64"
                    RenderOptions.BitmapScalingMode="HighQuality">
                 <Image.Effect>
-                    <DropShadowEffect BlurRadius="30" ShadowDepth="0" Color="#2F6FEB" Opacity="0.6" />
+                    <DropShadowEffect BlurRadius="24" ShadowDepth="0" Color="#2F6FEB" Opacity="0.6" />
                 </Image.Effect>
             </Image>
-            <TextBlock Text="英雄联盟数据提取工具" FontSize="38" FontWeight="SemiBold" Foreground="#FFFFFF"
-                       HorizontalAlignment="Center" Margin="0,24,0,0" />
-            <TextBlock Text="GitHub liveldy" FontSize="14"
-                       Foreground="#C7D2E4" HorizontalAlignment="Center" Margin="0,10,0,0" />
-            <TextBlock Text="{x:Static core:AppInfo.Summary}" FontSize="12"
-                       Foreground="#8C9BB5" HorizontalAlignment="Center" Margin="0,6,0,0" />
+            <TextBlock Text="英雄联盟数据提取工具" FontSize="26" FontWeight="SemiBold" Foreground="#FFFFFF"
+                       HorizontalAlignment="Center" Margin="0,18,0,0" />
+            <TextBlock Text="GitHub liveldy" FontSize="12"
+                       Foreground="#C7D2E4" HorizontalAlignment="Center" Margin="0,8,0,0" />
+            <TextBlock Text="{x:Static core:AppInfo.Summary}" FontSize="11"
+                       Foreground="#8C9BB5" HorizontalAlignment="Center" Margin="0,5,0,0" />
 
-            <Grid Width="320" Height="3" Margin="0,36,0,0" ClipToBounds="True">
+            <Grid Width="260" Height="3" Margin="0,26,0,0" ClipToBounds="True">
                 <Border Background="#33FFFFFF" CornerRadius="2" />
-                <Border x:Name="Glow" Width="118" Height="3" CornerRadius="2" HorizontalAlignment="Left"
+                <Border x:Name="Glow" Width="96" Height="3" CornerRadius="2" HorizontalAlignment="Left"
                         Background="#5B8DEF">
                     <Border.RenderTransform>
-                        <TranslateTransform x:Name="GlowShift" X="-118" />
+                        <TranslateTransform x:Name="GlowShift" X="-96" />
                     </Border.RenderTransform>
                     <Border.Triggers>
                         <EventTrigger RoutedEvent="Loaded">
@@ -62,20 +63,15 @@
                                 <Storyboard RepeatBehavior="Forever">
                                     <DoubleAnimation Storyboard.TargetName="GlowShift"
                                                      Storyboard.TargetProperty="X"
-                                                     From="-118" To="320" Duration="0:0:1.6" />
+                                                     From="-96" To="260" Duration="0:0:1.6" />
                                 </Storyboard>
                             </BeginStoryboard>
                         </EventTrigger>
                     </Border.Triggers>
                 </Border>
             </Grid>
-            <TextBlock Text="{Binding StatusText}" FontSize="12" Foreground="#C7D2E4"
-                       HorizontalAlignment="Center" Margin="0,14,0,0" />
+            <TextBlock Text="{Binding StatusText}" FontSize="11" Foreground="#C7D2E4"
+                       HorizontalAlignment="Center" Margin="0,12,0,0" />
         </StackPanel>
-
-        <!-- 资源就绪后才出现，见 MarkReady -->
-        <TextBlock x:Name="SkipHint" Text="点击继续" FontSize="12" Foreground="#B9C4D6" Opacity="0.85"
-                   Visibility="Collapsed"
-                   HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,44" />
     </Grid>
 </Window>

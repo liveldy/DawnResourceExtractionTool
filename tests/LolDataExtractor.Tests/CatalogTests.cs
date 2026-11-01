@@ -430,12 +430,12 @@ public class CatalogTests
         var entry = new CatalogEntry(1, "assets/characters/ahri/skins/skin05/particles/ahri_base_trail_01.tex",
             @"D:\x\Ahri.wad.client", CatalogSection.Champion, 0, 0, 100, 1);
 
-        Assert.Equal(Path.Combine("英雄", "ahri", "skin05", "particles", "ahri_base_trail_01.tex"),
+        Assert.Equal(Path.Combine("Champions", "ahri", "skin05", "particles", "ahri_base_trail_01.tex"),
             CatalogPaths.ExportPathOf(entry, section, group, entity));
 
         // A file outside the entity's anchor keeps the rest of its own folders.
         var loose = entry with { Path = "plugins/rcp-be-lol-game-data/global/default/v1/champion-icons/103.png" };
-        Assert.Equal(Path.Combine("英雄", "ahri", "skin05", "v1", "champion-icons", "103.png"),
+        Assert.Equal(Path.Combine("Champions", "ahri", "skin05", "v1", "champion-icons", "103.png"),
             CatalogPaths.ExportPathOf(loose, section, group, entity));
     }
 
@@ -449,7 +449,7 @@ public class CatalogTests
             Anchor = "assets/characters/ahri/skins/skin05/",
         };
 
-        Assert.Equal(Path.Combine("英雄", "ahri", "skin05"),
+        Assert.Equal(Path.Combine("Champions", "ahri", "skin05"),
             CatalogPaths.EntityFolderOf(section, group, entity));
 
         var root = Path.Combine(Path.GetTempPath(), "loldata-tests", Guid.NewGuid().ToString("N"));
@@ -482,9 +482,9 @@ public class CatalogTests
     {
         var root = Path.Combine(Path.GetTempPath(), "loldata-tests", Guid.NewGuid().ToString("N"));
         var first = new CatalogInfoEntity("英雄", "Ahri", "Base", "assets/characters/ahri/base/",
-            Path.Combine("英雄", "ahri", "base"), 2, 300, Array.Empty<CatalogInfoEntry>());
+            Path.Combine("Champions", "ahri", "base"), 2, 300, Array.Empty<CatalogInfoEntry>());
         var second = new CatalogInfoEntity("皮肤", "Spirit Blossom", "lillia_skin01", "assets/characters/lillia/",
-            Path.Combine("皮肤", "Spirit_Blossom", "lillia_skin01"), 3, 700, Array.Empty<CatalogInfoEntry>());
+            Path.Combine("Skins", "Spirit_Blossom", "lillia_skin01"), 3, 700, Array.Empty<CatalogInfoEntry>());
 
         CatalogInfo.Write(root, "LolDataExtractor 1.1.1", new[] { first });
         var merged = CatalogInfo.Write(root, "LolDataExtractor 1.1.1", new[] { second });

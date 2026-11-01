@@ -1,29 +1,29 @@
-using System.Diagnostics;
 using System.IO;
 using System.Windows;
-using System.Windows.Input;
 using System.Windows.Media.Animation;
 using LolDataExtractor.App.ViewModels;
 
 namespace LolDataExtractor.App;
 
 /// <summary>
-/// 开局页：程序目录里的 <c>load.mp4</c> 铺满整屏循环播放，上面叠标题、版本与当前加载状态。
-/// 资源没准备好之前点不动；准备好了（<see cref="MarkReady"/>）就一直停在这里，等用户点一下再进主窗口。
+/// 开局页：一个居中的无边框小窗（面积约占屏幕五分之一，像 Adobe / MATLAB 那样），
+/// 程序目录里的 <c>load.mp4</c> 在窗口里循环播放，上面叠标题、版本与当前加载状态。
+/// 启动工作做完就由 <see cref="App"/> 直接关掉它进主窗口，不需要点。
 /// </summary>
 public partial class SplashWindow : Window
 {
-    /// <summary>这段时间内的点击当作误触，不解锁。</summary>
-    private const int SkipGuardMilliseconds = 700;
-
-    private readonly Stopwatch _clock = Stopwatch.StartNew();
-
-    /// <summary>用户点了「进入」或窗口被关掉时完成，主窗口在这之后才显示。</summary>
-    private readonly TaskCompletionSource<bool> _skipped = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    /// <summary>窗口边长占屏幕边长的比例：0.447² ≈ 1/5 的面积。</summary>
+    private const double AreaScale = 0.447;
 
     public SplashWindow(string videoPath)
     {
         InitializeComponent();
+
+        // 居中、约占屏幕面积五分之一；尺寸按当前屏幕工作区算，高分屏不会跟着放大到满屏。
+        var work = SystemParameters.WorkArea;
+        Width = Math.Round(work.Width * AreaScale);
+        Height = Math.Round(work.Height * AreaScale);
+
         VideoUri = new Uri(videoPath);
         Loaded += OnLoaded;
         Closed += OnClosed;
@@ -41,9 +41,6 @@ public partial class SplashWindow : Window
         }
     }
 
-    /// <summary>True once the app finished its startup work; only then can the page be skipped.</summary>
-    public bool IsReady { get; private set; }
-
     /// <summary>让加载状态显示主窗口正在做的事（读索引、扫描 wad、下载哈希表…）。</summary>
     public void Attach(MainViewModel viewModel) => DataContext = viewModel;
 
@@ -54,19 +51,6 @@ public partial class SplashWindow : Window
 
     /// <summary>自检用：当前播放位置。</summary>
     public string PositionText => Backdrop.Position.ToString(@"hh\:mm\:ss");
-
-    /// <summary>
-    /// Resources are ready: the page stays until the user clicks (or presses Esc / Enter / Space).
-    /// Before this, clicks are ignored — the loading screen must not vanish mid download.
-    /// </summary>
-    public void MarkReady()
-    {
-        IsReady = true;
-        SkipHint.Visibility = Visibility.Visible;
-    }
-
-    /// <summary>Waits for the click that enters the main window (or for the window to be closed).</summary>
-    public Task WaitForSkipAsync() => _skipped.Task;
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
@@ -90,7 +74,6 @@ public partial class SplashWindow : Window
 
     private void OnClosed(object? sender, EventArgs e)
     {
-        _skipped.TrySetResult(true);
         Backdrop.Stop();
         Backdrop.Source = null;
         Backdrop.Close();
@@ -104,22 +87,4 @@ public partial class SplashWindow : Window
 
     private void Backdrop_MediaFailed(object sender, ExceptionRoutedEventArgs e)
         => Backdrop.Visibility = Visibility.Collapsed;
-
-    protected override void OnPreviewMouseDown(MouseButtonEventArgs e)
-    {
-        base.OnPreviewMouseDown(e);
-        Skip();
-    }
-
-    protected override void OnPreviewKeyDown(KeyEventArgs e)
-    {
-        base.OnPreviewKeyDown(e);
-        if (e.Key is Key.Escape or Key.Enter or Key.Space) Skip();
-    }
-
-    private void Skip()
-    {
-        if (!IsReady || _clock.ElapsedMilliseconds < SkipGuardMilliseconds || !IsVisible) return;
-        Close();
-    }
 }

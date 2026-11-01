@@ -271,6 +271,26 @@ public sealed class CatalogTables
 
     public bool IsEmpty => Champions.Count == 0 && Skins.Count == 0 && Items.Count == 0;
 
+    /// <summary>The table json exactly as the client ships it, kept so an export can transcribe it.</summary>
+    private readonly Dictionary<string, string> _rawTables = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>The localized (<c>zh_cn</c>) copy of the same files: an export writes these.</summary>
+    private readonly Dictionary<string, string> _rawLocalized = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Raw json of one client table (<c>skins.json</c>, …) or null when it was not loaded. The
+    /// localized copy wins — an export reads Chinese names — and the English one is the fallback.
+    /// </summary>
+    public bool TryGetTableText(string file, out string json)
+        => _rawLocalized.TryGetValue(file, out json!) || _rawTables.TryGetValue(file, out json!);
+
+    private void KeepTables(IReadOnlyDictionary<string, string> files, IReadOnlyDictionary<string, string>? localized = null)
+    {
+        foreach (var (file, json) in files) _rawTables[file] = json;
+        if (localized is not null)
+            foreach (var (file, json) in localized) _rawLocalized[file] = json;
+    }
+
     // ── loading ──────────────────────────────────────────────────────────────────────────────
 
     /// <summary>
@@ -325,6 +345,7 @@ public sealed class CatalogTables
         }
 
         var tables = FromJson(files);
+        tables.KeepTables(files, localized);   // 导出的 json 用 zh_cn 那份
         tables._tableFiles.AddRange(found);
         log?.Report($"数据表：{files.Count} 个文件 · {tables.Champions.Count} 个英雄 / {tables.Skins.Count} 个皮肤 / " +
                     $"{tables.Items.Count} 件装备 / {tables.Icons.Count} 个图标 / {tables.Emotes.Count} 个表情");
@@ -350,8 +371,10 @@ public sealed class CatalogTables
         var wards = ParseWards(files);
         var wardSets = ParseWardSets(files);
 
-        return new CatalogTables(champions, skins, borders, skinLines, universes, items, perks, perkStyles,
+        var tables = new CatalogTables(champions, skins, borders, skinLines, universes, items, perks, perkStyles,
             regalia, emotes, icons, iconSets, spells, wards, wardSets);
+        tables.KeepTables(files);
+        return tables;
     }
 
     private static byte[]? ReadAll(WadArchive archive, ulong hash)

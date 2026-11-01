@@ -680,6 +680,11 @@ public sealed partial class MainViewModel
             var info = await Task.Run(() => WriteCatalogInfo(output, catalog, byEntity, sizes));
             Log($"信息 JSON：{Path.Combine(output, CatalogInfo.FileName)}" +
                 $"（{info.EntityCount:N0} 个条目 / {info.FileCount:N0} 个文件）");
+
+            // 相关数据表：把客户端描述这段内容的原始 json 转写进导出根目录，而不是只给文件清单。
+            var tables = await Task.Run(() => CatalogJsonExport.Write(output, catalog.Tables, entries, destinations));
+            foreach (var table in tables)
+                Log($"相关 JSON：{table.Table}（保留 {table.Records:N0}/{table.Total:N0} 条）→ {table.Path}");
         });
     }
 

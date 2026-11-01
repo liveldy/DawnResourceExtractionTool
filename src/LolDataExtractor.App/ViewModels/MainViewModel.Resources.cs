@@ -63,7 +63,7 @@ public sealed partial class MainViewModel
         RefreshAudioToolState();
         if (!AllResourcesReady) return false;
 
-        StatusText = "资源就绪，可以进入";
+        StatusText = "资源就绪";
         Log("资源检查：全部就绪");
         return true;
     }
