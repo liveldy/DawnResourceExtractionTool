@@ -71,9 +71,9 @@ function New-Package {
     Write-Host ("{0}  {1:N1} MB" -f (Split-Path $zip -Leaf), $size)
 }
 
-New-Package -Project 'src/LolDataExtractor.App/LolDataExtractor.App.csproj' `
-             -Name 'LolDataExtractor' -Executable 'LolDataExtractor.exe'
-New-Package -Project 'src/LolDataExtractor.Cli/LolDataExtractor.Cli.csproj' `
-             -Name 'LolDataExtractor-Cli' -Executable 'loldata.exe'
+New-Package -Project 'src/DawnResourceExtractionTool.App/DawnResourceExtractionTool.App.csproj' `
+             -Name 'DawnResourceExtractionTool' -Executable 'DawnResourceExtractionTool.exe'
+New-Package -Project 'src/DawnResourceExtractionTool.Cli/DawnResourceExtractionTool.Cli.csproj' `
+             -Name 'DawnResourceExtractionTool-Cli' -Executable 'dawn.exe'
 
 Write-Host 'done'

@@ -5,11 +5,11 @@ $root = Split-Path -Parent $PSScriptRoot
 Push-Location $root
 try {
     Write-Host '== build ==' -ForegroundColor Cyan
-    dotnet build LolDataExtractor.sln -v q --nologo
+    dotnet build DawnResourceExtractionTool.sln -v q --nologo
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
     Write-Host '== test ==' -ForegroundColor Cyan
-    dotnet test tests\LolDataExtractor.Tests -v q --nologo
+    dotnet test tests\DawnResourceExtractionTool.Tests -v q --nologo
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
     Write-Host '== encoding ==' -ForegroundColor Cyan

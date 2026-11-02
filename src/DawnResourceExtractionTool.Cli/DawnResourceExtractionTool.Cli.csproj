@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\DawnResourceExtractionTool.Core\DawnResourceExtractionTool.Core.csproj" />
+  </ItemGroup>
+
+  <!-- Native libraries ship in runtimes\<rid>; this puts that folder on the loader path first. -->
+  <ItemGroup>
+    <Compile Include="..\DawnResourceExtractionTool.Shared\NativeSearchPath.cs" Link="NativeSearchPath.cs" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>dawn</AssemblyName>
+    <RootNamespace>DawnResourceExtractionTool.Cli</RootNamespace>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

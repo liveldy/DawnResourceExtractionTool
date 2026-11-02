@@ -1,0 +1,104 @@
+<Application x:Class="DawnResourceExtractionTool.App.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             ShutdownMode="OnMainWindowClose">
+    <Application.Resources>
+        <ResourceDictionary>
+            <!-- 前两本跟着主题走：皮肤（SkinDark / SkinDefault）与配色（Themes/Palette.*.xaml），
+                 运行期由 Services/ThemeService 整本替换。引用其中的笔刷一律用 DynamicResource。 -->
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/HandyControl;component/Themes/SkinDark.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/HandyControl;component/Themes/Theme.xaml" />
+                <ResourceDictionary Source="Themes/Palette.Dark.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <Style x:Key="PanelCard" TargetType="Border">
+                <Setter Property="Background" Value="{DynamicResource PanelBackground}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource PanelBorder}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="CornerRadius" Value="8" />
+                <Setter Property="Padding" Value="10" />
+                <Setter Property="Margin" Value="0,0,8,0" />
+            </Style>
+
+            <Style x:Key="SectionTitle" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="13" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="Foreground" Value="{DynamicResource BodyTextBrush}" />
+                <Setter Property="Margin" Value="0,0,0,6" />
+            </Style>
+
+            <Style x:Key="FieldLabel" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="12" />
+                <Setter Property="Foreground" Value="{DynamicResource MutedBrush}" />
+                <Setter Property="Margin" Value="0,8,0,3" />
+            </Style>
+
+            <Style x:Key="PrimaryAction" TargetType="Button" BasedOn="{StaticResource ButtonPrimary}">
+                <Setter Property="Height" Value="34" />
+                <Setter Property="FontSize" Value="13" />
+            </Style>
+
+            <!-- 三栏之间的拖动条：平面上就是一条看不见的窄缝，鼠标移上去才显出颜色 -->
+            <Style x:Key="ColumnSplitter" TargetType="Thumb">
+                <Setter Property="Cursor" Value="SizeWE" />
+                <Setter Property="Background" Value="{DynamicResource SplitterBrush}" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Thumb">
+                            <Border Background="{TemplateBinding Background}" CornerRadius="5" />
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+                <Style.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter Property="Background" Value="{DynamicResource SplitterHoverBrush}" />
+                    </Trigger>
+                    <Trigger Property="IsDragging" Value="True">
+                        <Setter Property="Background" Value="{DynamicResource SplitterHoverBrush}" />
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+
+            <Style x:Key="SecondaryAction" TargetType="Button" BasedOn="{StaticResource ButtonDefault}">
+                <Setter Property="Height" Value="30" />
+                <Setter Property="FontSize" Value="12" />
+            </Style>
+
+            <!-- 带占位提示的输入框：占位文字写在 Tag 上 -->
+            <Style x:Key="PlaceholderTextBox" TargetType="TextBox">
+                <Setter Property="Background" Value="{DynamicResource FieldBackground}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource FieldBorder}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="Foreground" Value="{DynamicResource StrongTextBrush}" />
+                <Setter Property="FontSize" Value="12" />
+                <Setter Property="Padding" Value="7,0" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="TextBox">
+                            <Border Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="4"
+                                    SnapsToDevicePixels="True">
+                                <Grid>
+                                    <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}"
+                                                  VerticalAlignment="Center" />
+                                    <TextBlock x:Name="Placeholder" Text="{TemplateBinding Tag}"
+                                               Margin="9,0,0,0" VerticalAlignment="Center"
+                                               Foreground="{DynamicResource PlaceholderBrush}" FontSize="12"
+                                               IsHitTestVisible="False" Visibility="Collapsed" />
+                                </Grid>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="Text" Value="">
+                                    <Setter TargetName="Placeholder" Property="Visibility" Value="Visible" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

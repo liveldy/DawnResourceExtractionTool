@@ -1,0 +1,510 @@
+{
+  "Core.Animation.Describe": {
+    "zh": "{0:F1}s · {1:F0}fps · {2} 条关节轨道",
+    "en": "{0:F1}s · {1:F0}fps · {2} joint tracks"
+  },
+  "Core.Animation.ParseFailed": {
+    "zh": "动画文件解析失败：{0}",
+    "en": "The animation file cannot be parsed: {0}"
+  },
+  "Core.Catalog.Deduplicating": {
+    "zh": "{0:N0} 个 wad 条目，去重中…",
+    "en": "{0:N0} wad entries, removing duplicates…"
+  },
+  "Core.Catalog.Grouped": {
+    "zh": "分组完成：{0:N0} 个条目 / {1:N0} 个组 / {2:N0} 个条目节点",
+    "en": "Groups ready: {0:N0} entries / {1:N0} groups / {2:N0} entry nodes"
+  },
+  "Core.Catalog.Grouping": {
+    "zh": "{0:N0} 个条目属于分类，整理分组…",
+    "en": "{0:N0} entries are classified, building the groups…"
+  },
+  "Core.Catalog.ReadFailed": {
+    "zh": "{0}: 无法读取（{1}）",
+    "en": "{0}: cannot be read ({1})"
+  },
+  "Core.Catalog.Section.Champion.Description": {
+    "zh": "模型、贴图、动画、数据与语音",
+    "en": "Models, textures, animations, data and voice"
+  },
+  "Core.Catalog.Section.Champion.Name": {
+    "zh": "英雄",
+    "en": "Champion"
+  },
+  "Core.Catalog.Section.Emote.Description": {
+    "zh": "表情图标与套组",
+    "en": "Emote icons and emote sets"
+  },
+  "Core.Catalog.Section.Emote.Name": {
+    "zh": "表情",
+    "en": "Emote"
+  },
+  "Core.Catalog.Section.Icon.Description": {
+    "zh": "召唤师图标与套组",
+    "en": "Summoner icons and icon sets"
+  },
+  "Core.Catalog.Section.Icon.Name": {
+    "zh": "图标",
+    "en": "Icon"
+  },
+  "Core.Catalog.Section.Item.Description": {
+    "zh": "图标、属性与脚本数据",
+    "en": "Icons, stats and script data"
+  },
+  "Core.Catalog.Section.Item.Name": {
+    "zh": "装备",
+    "en": "Item"
+  },
+  "Core.Catalog.Section.Perk.Description": {
+    "zh": "符文与符文系图标",
+    "en": "Runes and rune tree icons"
+  },
+  "Core.Catalog.Section.Perk.Name": {
+    "zh": "符文",
+    "en": "Rune"
+  },
+  "Core.Catalog.Section.Regalia.Description": {
+    "zh": "横幅与旗帜",
+    "en": "Banners and flags"
+  },
+  "Core.Catalog.Section.Regalia.Name": {
+    "zh": "旗帜",
+    "en": "Regalia"
+  },
+  "Core.Catalog.Section.Skin.Description": {
+    "zh": "原画、载入图、炫彩与系列",
+    "en": "Splash art, loading screens, chromas and skin lines"
+  },
+  "Core.Catalog.Section.Skin.Name": {
+    "zh": "皮肤",
+    "en": "Skin"
+  },
+  "Core.Catalog.Section.SummonerSpell.Description": {
+    "zh": "技能图标与数据",
+    "en": "Spell icons and data"
+  },
+  "Core.Catalog.Section.SummonerSpell.Name": {
+    "zh": "召唤师技能",
+    "en": "Summoner spell"
+  },
+  "Core.Catalog.Section.Ward.Description": {
+    "zh": "守卫皮肤图标",
+    "en": "Ward skin icons"
+  },
+  "Core.Catalog.Section.Ward.Name": {
+    "zh": "守卫",
+    "en": "Ward"
+  },
+  "Core.Classifier.StatModsDetail": {
+    "zh": "属性符文碎片",
+    "en": "Stat shards"
+  },
+  "Core.Extract.Describe": {
+    "zh": "导出 {0} 个文件，跳过 {1}，失败 {2}，共 {3}，耗时 {4}s",
+    "en": "Exported {0} files, skipped {1}, failed {2}, {3} in total, {4}s"
+  },
+  "Core.Extract.Selected": {
+    "zh": "{0}: 选中 {1} 个条目",
+    "en": "{0}: {1} entries selected"
+  },
+  "Core.Extract.WadFinished": {
+    "zh": "{0}: 完成（累计导出 {1}）",
+    "en": "{0}: done ({1} exported so far)"
+  },
+  "Core.FileTree.Category.Audio": {
+    "zh": "音频",
+    "en": "Audio"
+  },
+  "Core.FileTree.Category.Bin": {
+    "zh": "数据",
+    "en": "Data"
+  },
+  "Core.FileTree.Category.Model": {
+    "zh": "模型",
+    "en": "Model"
+  },
+  "Core.FileTree.Category.Other": {
+    "zh": "其他",
+    "en": "Other"
+  },
+  "Core.FileTree.Category.Shader": {
+    "zh": "着色器",
+    "en": "Shader"
+  },
+  "Core.FileTree.Category.Text": {
+    "zh": "文本",
+    "en": "Text"
+  },
+  "Core.FileTree.Category.Texture": {
+    "zh": "纹理",
+    "en": "Texture"
+  },
+  "Core.FileTree.Category.Video": {
+    "zh": "视频",
+    "en": "Video"
+  },
+  "Core.FileTree.Unnamed": {
+    "zh": "未命名条目",
+    "en": "Unnamed entries"
+  },
+  "Core.Hashes.ClientTableMissing": {
+    "zh": "远端没有提供 {0}",
+    "en": "The remote does not offer {0}"
+  },
+  "Core.Hashes.DirectoryMissing": {
+    "zh": "远端哈希表目录不存在，请检查网络或仓库状态",
+    "en": "The remote hash table folder does not exist; check the network and the repository state"
+  },
+  "Core.Hashes.NoParts": {
+    "zh": "远端未提供任何哈希表分片",
+    "en": "The remote offers no hash table parts"
+  },
+  "Core.Hashes.PartIncomplete": {
+    "zh": "{0} 下载不完整（{1}/{2} 字节）",
+    "en": "{0} did not download completely ({1}/{2} bytes)"
+  },
+  "Core.Hashes.RateLimited": {
+    "zh": "GitHub API 访问频率受限，请稍后再试或配置 GitHub Token",
+    "en": "The GitHub API rate limit is exhausted; try again later or set a GitHub token"
+  },
+  "Core.Hashes.Retry": {
+    "zh": "重试 {0}",
+    "en": "retry {0}"
+  },
+  "Core.Linker.Describe": {
+    "zh": "骨骼 {0} · 动画 {1} · 贴图 {2}",
+    "en": "Skeletons {0} · animations {1} · textures {2}"
+  },
+  "Core.Media.AudioFallback": {
+    "zh": "音频转码失败，改为原样导出：{0}（{1}）",
+    "en": "Could not transcode the audio, exporting it unchanged: {0} ({1})"
+  },
+  "Core.Media.BankStreamCount": {
+    "zh": "音频包只有 {0} 条流",
+    "en": "The audio bank holds only {0} streams"
+  },
+  "Core.Media.NoDecodableStream": {
+    "zh": "音频包里没有可解码的流",
+    "en": "The audio bank holds no decodable stream"
+  },
+  "Core.Media.NoMp3Encoder": {
+    "zh": "未找到 mp3 编码器（{0}）",
+    "en": "No mp3 encoder found ({0})"
+  },
+  "Core.Media.StreamLabel": {
+    "zh": "流 {0}",
+    "en": "Stream {0}"
+  },
+  "Core.Media.TextureFallback": {
+    "zh": "贴图转 PNG 失败，改为原样导出：{0}（{1}）",
+    "en": "Could not convert the texture to PNG, exporting it unchanged: {0} ({1})"
+  },
+  "Core.Model.Describe": {
+    "zh": "{0} 个子网格 · {1:N0} 顶点 · {2:N0} 三角形",
+    "en": "{0} submeshes · {1:N0} vertices · {2:N0} triangles"
+  },
+  "Core.Model.NoExtension": {
+    "zh": "无扩展名",
+    "en": "no extension"
+  },
+  "Core.Model.NoVertices": {
+    "zh": "模型中没有可显示的顶点",
+    "en": "The model holds no vertex to show"
+  },
+  "Core.Model.Skinned": {
+    "zh": "骨骼网格 (skn)",
+    "en": "Skinned mesh (skn)"
+  },
+  "Core.Model.SkinnedFailed": {
+    "zh": "骨骼网格解析失败：{0}",
+    "en": "The skinned mesh cannot be parsed: {0}"
+  },
+  "Core.Model.StaticFailed": {
+    "zh": "静态模型解析失败：{0}",
+    "en": "The static model cannot be parsed: {0}"
+  },
+  "Core.Model.StaticScb": {
+    "zh": "静态模型 (scb)",
+    "en": "Static model (scb)"
+  },
+  "Core.Model.StaticSco": {
+    "zh": "静态模型 (sco)",
+    "en": "Static model (sco)"
+  },
+  "Core.Model.Unsupported": {
+    "zh": "不支持预览的模型格式：{0}",
+    "en": "This model format has no preview: {0}"
+  },
+  "Core.Names.Corrupt": {
+    "zh": "{0} 已损坏（路径数据不完整）",
+    "en": "{0} is damaged (the path data is incomplete)"
+  },
+  "Core.Names.Counted": {
+    "zh": "{0}: {1} 条",
+    "en": "{0}: {1} entries"
+  },
+  "Core.Names.NotANameIndex": {
+    "zh": "{0} 不是有效的名称索引文件",
+    "en": "{0} is not a valid name index"
+  },
+  "Core.Names.UnsupportedVersion": {
+    "zh": "{0} 索引版本 {1} 不受支持",
+    "en": "{0} uses the unsupported index version {1}"
+  },
+  "Core.Png.InvalidSize": {
+    "zh": "图像尺寸无效",
+    "en": "The image size is invalid"
+  },
+  "Core.Png.ShortPixels": {
+    "zh": "像素数据不足",
+    "en": "The pixel data is too short"
+  },
+  "Core.Preview.AudioBank": {
+    "zh": "音频包",
+    "en": "Audio bank"
+  },
+  "Core.Preview.AudioTooLarge": {
+    "zh": "音频包 {0} 超出预览上限",
+    "en": "The audio bank is {0}, beyond the preview limit"
+  },
+  "Core.Preview.BankDecodeFailed": {
+    "zh": "无法解析音频包：{0}",
+    "en": "This audio bank cannot be parsed: {0}"
+  },
+  "Core.Preview.BinaryOnly": {
+    "zh": "二进制数据，未识别出可预览的格式",
+    "en": "Binary data; no previewable format was recognised"
+  },
+  "Core.Preview.EmptyVoicePackage": {
+    "zh": "这个语音包里没有可播放的音频流",
+    "en": "This voice package holds no playable audio stream"
+  },
+  "Core.Preview.FileTooLarge": {
+    "zh": "文件 {0} 超出预览上限 {1}",
+    "en": "The file is {0}, beyond the {1} preview limit"
+  },
+  "Core.Preview.Hex": {
+    "zh": "十六进制",
+    "en": "Hex"
+  },
+  "Core.Preview.HexHead": {
+    "zh": "十六进制 · 前 {0} KB / 共 {1}",
+    "en": "Hex · the first {0} KB of {1}"
+  },
+  "Core.Preview.Model": {
+    "zh": "模型",
+    "en": "Model"
+  },
+  "Core.Preview.Model.AnimationHint": {
+    "zh": "骨骼动画文件，暂不做 3D 预览",
+    "en": "A skeletal animation; there is no 3D preview yet"
+  },
+  "Core.Preview.Model.MapGeometryHint": {
+    "zh": "地图几何文件（体量很大），暂不做 3D 预览",
+    "en": "Map geometry (very large); there is no 3D preview yet"
+  },
+  "Core.Preview.Model.NvrHint": {
+    "zh": "NVR 网格，暂不做 3D 预览",
+    "en": "An NVR mesh; there is no 3D preview yet"
+  },
+  "Core.Preview.Model.PreloadHint": {
+    "zh": "资源预载清单，不是几何数据",
+    "en": "An asset preload list, not geometry"
+  },
+  "Core.Preview.Model.SkeletonHint": {
+    "zh": "骨骼定义文件，需配合 .skn 使用，暂不做 3D 预览",
+    "en": "A skeleton definition, used together with the .skn; there is no 3D preview yet"
+  },
+  "Core.Preview.Model.UnsupportedHint": {
+    "zh": "暂不支持预览的模型格式",
+    "en": "This model format has no preview yet"
+  },
+  "Core.Preview.Model.WorldGeometryHint": {
+    "zh": "世界几何文件，暂不做 3D 预览",
+    "en": "World geometry; there is no 3D preview yet"
+  },
+  "Core.Preview.ModelDecodeFailed": {
+    "zh": "无法解析这个模型：{0}",
+    "en": "This model cannot be parsed: {0}"
+  },
+  "Core.Preview.ModelInfo": {
+    "zh": "模型元信息",
+    "en": "Model metadata"
+  },
+  "Core.Preview.NoAudio": {
+    "zh": "这个 .bnk 只有事件或元数据，没有内嵌音频流；同名的 .wpk 或 _audio.bnk 里才是真正的语音与音效",
+    "en": "This .bnk holds events or metadata only, with no embedded audio stream; the real voice and sound effects sit in the matching .wpk or _audio.bnk"
+  },
+  "Core.Preview.RawImage": {
+    "zh": "直读图片",
+    "en": "Image, read as it is"
+  },
+  "Core.Preview.SingleAudio": {
+    "zh": "单条音频，可直接试听",
+    "en": "A single audio stream, ready to play"
+  },
+  "Core.Preview.StreamSummary": {
+    "zh": "{0} 条音频流 · {1} · {2} v{3}",
+    "en": "{0} audio streams · {1} · {2} v{3}"
+  },
+  "Core.Preview.Text": {
+    "zh": "文本",
+    "en": "Text"
+  },
+  "Core.Preview.TextHead": {
+    "zh": "显示前 {0} KB / 共 {1}",
+    "en": "Showing the first {0} KB of {1}"
+  },
+  "Core.Preview.Texture": {
+    "zh": "贴图",
+    "en": "Texture"
+  },
+  "Core.Preview.TextureDecodeFailed": {
+    "zh": "无法解码这张贴图：{0}",
+    "en": "This texture cannot be decoded: {0}"
+  },
+  "Core.Skeleton.Describe": {
+    "zh": "{0} · {1} 关节 · {2} 影响",
+    "en": "{0} · {1} joints · {2} influences"
+  },
+  "Core.Skeleton.NoJoints": {
+    "zh": "骨骼文件里没有任何关节",
+    "en": "The skeleton file holds no joint"
+  },
+  "Core.Skeleton.ParseFailed": {
+    "zh": "骨骼文件解析失败：{0}",
+    "en": "The skeleton file cannot be parsed: {0}"
+  },
+  "Core.Skinning.BufferTooSmall": {
+    "zh": "关节矩阵缓冲区太小",
+    "en": "The joint matrix buffer is too small"
+  },
+  "Core.Speech.DownloadFailed": {
+    "zh": "语音识别模型下载失败：{0}。可手动下载 {1} 放到 {2}",
+    "en": "The speech model could not be downloaded: {0}. You can download {1} by hand into {2}"
+  },
+  "Core.Speech.Downloading": {
+    "zh": "正在下载语音识别模型（约 {0}，只需一次）…",
+    "en": "Downloading the speech model (about {0}, only once)…"
+  },
+  "Core.Speech.NotDownloaded": {
+    "zh": "尚未下载语音识别模型",
+    "en": "The speech model has not been downloaded yet"
+  },
+  "Core.Speech.Progress": {
+    "zh": "正在下载语音识别模型 {0}%（{1} / {2}）",
+    "en": "Downloading the speech model: {0}% ({1} / {2})"
+  },
+  "Core.Speech.Ready": {
+    "zh": "语音识别模型已就绪",
+    "en": "The speech model is ready"
+  },
+  "Core.Tables.BordersDetail": {
+    "zh": "边框图",
+    "en": "Border images"
+  },
+  "Core.Tables.GroupDetail": {
+    "zh": "客户端数据表（default / zh_cn）",
+    "en": "Client data tables (default / zh_cn)"
+  },
+  "Core.Tables.Missing": {
+    "zh": "客户端包里没有数据表，分类为空",
+    "en": "The client wads hold no data table, so the catalog stays empty"
+  },
+  "Core.Tables.ReadFailed": {
+    "zh": "{0}: 读取客户端数据表失败（{1}）",
+    "en": "{0}: the client data tables cannot be read ({1})"
+  },
+  "Core.Tables.References": {
+    "zh": "数据表引用：{0:N0} 个路径",
+    "en": "Table references: {0:N0} paths"
+  },
+  "Core.Tables.Summary": {
+    "zh": "数据表：{0} 个文件 · {1} 个英雄 / {2} 个皮肤 / {3} 件装备 / {4} 个图标 / {5} 个表情",
+    "en": "Tables: {0} files · {1} champions / {2} skins / {3} items / {4} icons / {5} emotes"
+  },
+  "Core.Texture.DdsHeaderFailed": {
+    "zh": "DDS 头解析失败：{0}",
+    "en": "The DDS header cannot be parsed: {0}"
+  },
+  "Core.Texture.DdsSizeInvalid": {
+    "zh": "DDS 尺寸无效",
+    "en": "The DDS size is invalid"
+  },
+  "Core.Texture.DecodeFailed": {
+    "zh": "贴图解码失败：{0}",
+    "en": "The texture cannot be decoded: {0}"
+  },
+  "Core.Texture.NoExtension": {
+    "zh": "无扩展名",
+    "en": "no extension"
+  },
+  "Core.Texture.PfimFormatUnsupported": {
+    "zh": "暂不支持 Pfim 的像素格式 {0}",
+    "en": "Pfim's pixel format {0} has no support yet"
+  },
+  "Core.Texture.Unsupported": {
+    "zh": "不支持预览的贴图格式：{0}",
+    "en": "This texture format has no preview: {0}"
+  },
+  "Core.Vgmstream.DownloadFailed": {
+    "zh": "音频解码工具下载失败：{0}。可手动下载 {1} 解压到 {2}",
+    "en": "The audio decoder could not be downloaded: {0}. You can download {1} by hand and extract it into {2}"
+  },
+  "Core.Vgmstream.Downloading": {
+    "zh": "正在下载音频解码工具 vgmstream（约 4.6 MB）…",
+    "en": "Downloading the vgmstream audio decoder (about 4.6 MB)…"
+  },
+  "Core.Vgmstream.ExecutableMissing": {
+    "zh": "解压后没有找到 {0}，请检查 {1}",
+    "en": "No {0} after extracting; check {1}"
+  },
+  "Core.Vgmstream.ExitCodeFailed": {
+    "zh": "vgmstream 转码失败（退出码 {0}）",
+    "en": "vgmstream transcoding failed (exit code {0})"
+  },
+  "Core.Vgmstream.Extracting": {
+    "zh": "正在解压…",
+    "en": "Extracting…"
+  },
+  "Core.Vgmstream.Failed": {
+    "zh": "vgmstream 转码失败：{0}",
+    "en": "vgmstream transcoding failed: {0}"
+  },
+  "Core.Vgmstream.NotInstalled": {
+    "zh": "尚未安装音频解码工具 vgmstream",
+    "en": "The vgmstream audio decoder is not installed yet"
+  },
+  "Core.Vgmstream.StartFailed": {
+    "zh": "无法启动 vgmstream-cli",
+    "en": "vgmstream-cli cannot be started"
+  },
+  "Core.Vgmstream.Timeout": {
+    "zh": "音频转码超时（60 秒）",
+    "en": "Audio transcoding timed out (60 seconds)"
+  },
+  "Core.Wad.HashNotFound": {
+    "zh": "wad 中不存在 hash {0}",
+    "en": "The wad holds no hash {0}"
+  },
+  "Core.Wwise.NotABank": {
+    "zh": "不是 Wwise 音频包（缺少 BKHD 或 r3d2 头）",
+    "en": "Not a Wwise audio container (no BKHD or r3d2 header)"
+  },
+  "Core.Wwise.SoundBank": {
+    "zh": "bnk 音频包",
+    "en": "Sound bank (bnk)"
+  },
+  "Core.Wwise.UnknownCodec": {
+    "zh": "未知",
+    "en": "Unknown"
+  },
+  "Core.Wwise.VoicePackage": {
+    "zh": "wpk 语音包",
+    "en": "Voice package (wpk)"
+  },
+  "Core.Wwise.WpkIndexCorrupt": {
+    "zh": "WPK 索引损坏（条目数超出文件长度）",
+    "en": "The WPK index is damaged (the entry count exceeds the file length)"
+  }
+}

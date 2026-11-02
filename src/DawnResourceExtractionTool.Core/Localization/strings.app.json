@@ -1,0 +1,686 @@
+{
+  "App.Audio.BankNeedsTool": {
+    "zh": "音频包已解析；播放与转写需要先下载 vgmstream 解码工具",
+    "en": "Bank parsed; playback and transcription need the vgmstream decoder"
+  },
+  "App.Audio.BankReady": {
+    "zh": "选择一条音频流后点「播放」或「转换」",
+    "en": "Pick a stream, then Play or Convert"
+  },
+  "App.Audio.NeedsTool": {
+    "zh": "播放与转写需要先下载 vgmstream 解码工具",
+    "en": "Playback and transcription need the vgmstream decoder"
+  },
+  "App.Audio.PlaybackDone": {
+    "zh": "播放结束",
+    "en": "Playback finished"
+  },
+  "App.Audio.Playing": {
+    "zh": "正在播放（{0}）",
+    "en": "Playing ({0})"
+  },
+  "App.Audio.Preparing": {
+    "zh": "准备音频…",
+    "en": "Preparing audio…"
+  },
+  "App.Audio.Ready": {
+    "zh": "点「播放」或「转换」",
+    "en": "Click Play or Convert"
+  },
+  "App.Audio.ToolReady": {
+    "zh": "音频解码工具就绪，可以试听",
+    "en": "Audio decoder ready — playback works now"
+  },
+  "App.Audio.Unreadable": {
+    "zh": "无法读取音频",
+    "en": "Could not read the audio"
+  },
+  "App.Browse.DataRoot": {
+    "zh": "选择英雄联盟 Game\\DATA 目录",
+    "en": "Choose the League of Legends Game\\DATA folder"
+  },
+  "App.Browse.Output": {
+    "zh": "选择导出目录",
+    "en": "Choose the export folder"
+  },
+  "App.Catalog.AssignNameFirst": {
+    "zh": "先在「归属到组」里填英雄别名或组名",
+    "en": "Fill a champion alias or group name into Group first"
+  },
+  "App.Catalog.Assigned": {
+    "zh": "{0} 已归属到 {1}",
+    "en": "{0} is now in group {1}"
+  },
+  "App.Catalog.EntryCount": {
+    "zh": "{0:N0} 条",
+    "en": "{0:N0} entries"
+  },
+  "App.Catalog.Failed": {
+    "zh": "分类索引失败：{0}",
+    "en": "Catalog build failed: {0}"
+  },
+  "App.Catalog.FileCount": {
+    "zh": "{0:N0} 个文件",
+    "en": "{0:N0} files"
+  },
+  "App.Catalog.FileCountWithSize": {
+    "zh": "{0:N0} 个 · {1}",
+    "en": "{0:N0} files · {1}"
+  },
+  "App.Catalog.Grouping": {
+    "zh": "分类索引：按数据表归堆…",
+    "en": "Catalog: grouping by the data tables…"
+  },
+  "App.Catalog.Hidden": {
+    "zh": "已隐藏 {0}",
+    "en": "Hid {0}"
+  },
+  "App.Catalog.MoreFiles": {
+    "zh": "…另有 {0:N0} 个文件，用上面的搜索缩小范围",
+    "en": "…{0:N0} more files — narrow it with the search above"
+  },
+  "App.Catalog.MovedTo": {
+    "zh": "已把 {0} 归到「{1}」，可随时在右键菜单里还原",
+    "en": "Moved {0} to {1} — undo it any time from the context menu"
+  },
+  "App.Catalog.MultiWadHint": {
+    "zh": "（{0} 个 wad 含此条目，打开的是 {1}）",
+    "en": " ({0} wads contain this entry; opening {1})"
+  },
+  "App.Catalog.NeedScanForJump": {
+    "zh": "先扫描游戏目录，才能按路径跳转",
+    "en": "Scan the game folder first to jump by path"
+  },
+  "App.Catalog.NoManualRule": {
+    "zh": "这个节点没有手写规则",
+    "en": "This node has no manual rule"
+  },
+  "App.Catalog.NoPrefix": {
+    "zh": "这个节点没有可用的路径前缀",
+    "en": "This node has no usable path prefix"
+  },
+  "App.Catalog.NoPrefixPickGroup": {
+    "zh": "这个节点没有可用的路径前缀，请选中下面的组或条目",
+    "en": "This node has no usable path prefix — pick a group or entity below"
+  },
+  "App.Catalog.NotBuilt": {
+    "zh": "分类索引：尚未建立",
+    "en": "Catalog: not built yet"
+  },
+  "App.Catalog.NoteHidden": {
+    "zh": "界面隐藏 {0:yyyy-MM-dd HH:mm}",
+    "en": "Hidden in the UI {0:yyyy-MM-dd HH:mm}"
+  },
+  "App.Catalog.NoteUi": {
+    "zh": "界面设置 {0:yyyy-MM-dd HH:mm}",
+    "en": "Set in the UI {0:yyyy-MM-dd HH:mm}"
+  },
+  "App.Catalog.OverridesLoaded": {
+    "zh": "分类覆盖：{0} 条规则 / {1} 个条目",
+    "en": "Catalog overrides: {0} rules / {1} entries"
+  },
+  "App.Catalog.ReadingTables": {
+    "zh": "分类索引：读取客户端数据表…",
+    "en": "Catalog: reading the client data tables…"
+  },
+  "App.Catalog.Restored": {
+    "zh": "已还原为自动分类",
+    "en": "Back to automatic grouping"
+  },
+  "App.Catalog.ScanFirst": {
+    "zh": "分类索引：先扫描游戏目录",
+    "en": "Catalog: scan the game folder first"
+  },
+  "App.Catalog.SearchRoot": {
+    "zh": "搜索结果：{0}",
+    "en": "Search results: {0}"
+  },
+  "App.Catalog.SearchTruncated": {
+    "zh": "只列出前 {0:N0} 个，共 {1:N0} 个命中",
+    "en": "Showing the first {0:N0} of {1:N0} hits"
+  },
+  "App.Catalog.SectionCount": {
+    "zh": "{0:N0} 个文件 · {1:N0} 个组",
+    "en": "{0:N0} files · {1:N0} groups"
+  },
+  "App.Catalog.StatusDone": {
+    "zh": "分类索引：{0:N0} 个条目 · {1:N0} 个组 · {2:N0} 个条目节点",
+    "en": "Catalog: {0:N0} entries · {1:N0} groups · {2:N0} entity nodes"
+  },
+  "App.Catalog.ToggleFolderEntries": {
+    "zh": "勾选或取消这个目录下的全部 {0:N0} 个条目",
+    "en": "Tick or untick all {0:N0} entries in this folder"
+  },
+  "App.Catalog.ToggleFolderWads": {
+    "zh": "勾选或取消这个目录下的全部 {0} 个 wad",
+    "en": "Tick or untick all {0} wads in this folder"
+  },
+  "App.Catalog.WadCount": {
+    "zh": "{0} 个 wad",
+    "en": "{0} wads"
+  },
+  "App.Catalog.WadDetail": {
+    "zh": "{0:N0} 条目 · {1} · {2}",
+    "en": "{0:N0} entries · {1} · {2}"
+  },
+  "App.Error.Audition": {
+    "zh": "试听失败：{0}",
+    "en": "Playback failed: {0}"
+  },
+  "App.Error.Export": {
+    "zh": "导出失败：{0}",
+    "en": "Export failed: {0}"
+  },
+  "App.Error.Generic": {
+    "zh": "出错：{0}",
+    "en": "Error: {0}"
+  },
+  "App.Error.LoadAssets": {
+    "zh": "加载资源失败：{0}",
+    "en": "Could not load the assets: {0}"
+  },
+  "App.Error.ModelDownload": {
+    "zh": "模型下载失败：{0}",
+    "en": "Model download failed: {0}"
+  },
+  "App.Error.NoAudio": {
+    "zh": "没有可播放的音频数据",
+    "en": "There is no audio data to play"
+  },
+  "App.Error.NoHashText": {
+    "zh": "哈希表目录中没有文本文件，索引未改动：{0}",
+    "en": "No text files in the hash table folder — the index is untouched: {0}"
+  },
+  "App.Error.Playback": {
+    "zh": "播放失败：{0}",
+    "en": "Playback failed: {0}"
+  },
+  "App.Error.ReadEntry": {
+    "zh": "读取条目失败：{0}",
+    "en": "Could not read the entry: {0}"
+  },
+  "App.Error.Transcribe": {
+    "zh": "转写失败：{0}",
+    "en": "Transcription failed: {0}"
+  },
+  "App.Export.CategoryRoot": {
+    "zh": "类别根不能单独导出，请选中具体目录，或用「导出类别」勾选",
+    "en": "A category root cannot be exported on its own — pick a folder or tick the categories"
+  },
+  "App.Export.NoFilesInNode": {
+    "zh": "这个节点下没有可导出的文件",
+    "en": "This node holds no files to export"
+  },
+  "App.Export.NoFolderPath": {
+    "zh": "选中项没有具体目录路径",
+    "en": "The selection has no folder path"
+  },
+  "App.Export.NoOutputDir": {
+    "zh": "请先设置导出目录",
+    "en": "Set the export folder first"
+  },
+  "App.Export.NoWads": {
+    "zh": "没有可导出的 wad：请勾选 wad，或把导出范围改成「当前 wad」/「全部 wad」",
+    "en": "No wad to export — tick one, or switch the scope to the current or all wads"
+  },
+  "App.Export.Nothing": {
+    "zh": "没有可导出的内容",
+    "en": "Nothing to export"
+  },
+  "App.Export.OpenWadFirst": {
+    "zh": "请先打开要导出的 wad",
+    "en": "Open the wad to export first"
+  },
+  "App.Export.SelectFolder": {
+    "zh": "请先在目录树里选中一个目录",
+    "en": "Select a folder in the tree first"
+  },
+  "App.Export.StreamSuffix": {
+    "zh": "（第 {0} 条流）",
+    "en": " (stream {0})"
+  },
+  "App.Export.TickEntriesFirst": {
+    "zh": "请先在目录树里勾选要导出的条目",
+    "en": "Tick the entries to export in the tree first"
+  },
+  "App.Log.AutoDownloadFailed": {
+    "zh": "自动下载哈希表未完成：{0}",
+    "en": "The automatic hash table download did not finish: {0}"
+  },
+  "App.Log.AutoDownloadHashes": {
+    "zh": "未找到名称索引，自动下载哈希表：{0}",
+    "en": "No name index yet — downloading the hash tables: {0}"
+  },
+  "App.Log.Cancelled": {
+    "zh": "操作已取消",
+    "en": "Operation cancelled"
+  },
+  "App.Log.Catalog": {
+    "zh": "分类：{0}",
+    "en": "Catalog: {0}"
+  },
+  "App.Log.ClientHashesFailed": {
+    "zh": "客户端哈希表未更新：{0}",
+    "en": "The client hash tables were not updated: {0}"
+  },
+  "App.Log.ClientIndexWritten": {
+    "zh": "客户端名称索引已写入 {0}（{1:N0} 条）",
+    "en": "Client name index written: {0} ({1:N0} entries)"
+  },
+  "App.Log.ExportCatalog": {
+    "zh": "按分类导出「{0}」：{1:N0} 个文件 / {2} 个 wad → {3}",
+    "en": "Export by category {0}: {1:N0} files / {2} wads → {3}"
+  },
+  "App.Log.ExportCurrent": {
+    "zh": "导出当前文件{0}：{1}",
+    "en": "Export current file{0}: {1}"
+  },
+  "App.Log.ExportCurrentEmpty": {
+    "zh": "导出当前文件：没有可导出的内容",
+    "en": "Export current file: nothing to export"
+  },
+  "App.Log.ExportLanguage": {
+    "zh": "导出语言：{0}（客户端 json 取 {1} 那份）",
+    "en": "Export language: {0} (client json from the {1} copy)"
+  },
+  "App.Log.ExportStart": {
+    "zh": "导出开始：{0} 个 wad · 范围「{1}」",
+    "en": "Export started: {0} wads · scope {1}"
+  },
+  "App.Log.ExportStartCategories": {
+    "zh": " · 类别 {0}",
+    "en": " · categories {0}"
+  },
+  "App.Log.ExportStartHashes": {
+    "zh": " · 勾选 {0:N0} 个条目",
+    "en": " · {0:N0} ticked entries"
+  },
+  "App.Log.ExportStartPaths": {
+    "zh": " · 条目 {0}",
+    "en": " · entries {0}"
+  },
+  "App.Log.ExportStartPrefix": {
+    "zh": " · 目录 {0}",
+    "en": " · folder {0}"
+  },
+  "App.Log.Failed": {
+    "zh": "失败：{0}",
+    "en": "Failed: {0}"
+  },
+  "App.Log.GameRoot": {
+    "zh": "游戏目录：{0} → {1}",
+    "en": "Game folder: {0} → {1}"
+  },
+  "App.Log.HashesReady": {
+    "zh": "哈希表就绪：下载 {0} 个、跳过 {1} 个，共 {2}",
+    "en": "Hash tables ready: {0} downloaded, {1} skipped, {2} in total"
+  },
+  "App.Log.IndexFiltered": {
+    "zh": "按本地 {0:N0} 个 hash 收敛索引：命中 {1:N0} 条",
+    "en": "Narrowed the index to the local {0:N0} hashes: {1:N0} hits"
+  },
+  "App.Log.InfoJson": {
+    "zh": "信息 JSON：{0}（{1:N0} 个条目 / {2:N0} 个文件）",
+    "en": "Info JSON: {0} ({1:N0} entities / {2:N0} files)"
+  },
+  "App.Log.JumpFailed": {
+    "zh": "跳转失败（客户端包里没有）：{0}",
+    "en": "Jump failed (not in the client archives): {0}"
+  },
+  "App.Log.ListSeparator": {
+    "zh": "、",
+    "en": ", "
+  },
+  "App.Log.Manifest": {
+    "zh": "{0}；清单 {1}",
+    "en": "{0}; manifest {1}"
+  },
+  "App.Log.ManualPick": {
+    "zh": "手动选择{0}：{1}",
+    "en": "Picked {0} by hand: {1}"
+  },
+  "App.Log.ModelAssetsFailed": {
+    "zh": "模型资源加载失败：{0}",
+    "en": "Model assets failed to load: {0}"
+  },
+  "App.Log.ModelDownloadFailed": {
+    "zh": "语音识别模型下载失败：{0}",
+    "en": "The speech model download failed: {0}"
+  },
+  "App.Log.NameIndexWritten": {
+    "zh": "名称索引已写入 {0}（{1}）",
+    "en": "Name index written: {0} ({1})"
+  },
+  "App.Log.OverrideGroup": {
+    "zh": "分类覆盖：{0} 归属到 {1}",
+    "en": "Catalog override: {0} → group {1}"
+  },
+  "App.Log.OverrideHidden": {
+    "zh": "分类覆盖：隐藏 {0}",
+    "en": "Catalog override: hide {0}"
+  },
+  "App.Log.OverrideNoRule": {
+    "zh": "分类覆盖：{0} 没有手写规则",
+    "en": "Catalog override: {0} has no manual rule"
+  },
+  "App.Log.OverrideRestored": {
+    "zh": "分类覆盖：还原 {0}",
+    "en": "Catalog override: restored {0}"
+  },
+  "App.Log.OverrideSection": {
+    "zh": "分类覆盖：{0} → {1}",
+    "en": "Catalog override: {0} → {1}"
+  },
+  "App.Log.RelatedJson": {
+    "zh": "相关 JSON：{0}（保留 {1:N0}/{2:N0} 条）→ {3}",
+    "en": "Related JSON: {0} ({1:N0}/{2:N0} records kept) → {3}"
+  },
+  "App.Log.ScanDone": {
+    "zh": "扫描完成：共 {0}，{1:N0} 个条目",
+    "en": "Scan finished: {0}, {1:N0} entries"
+  },
+  "App.Log.ScopeBoth": {
+    "zh": "{0} 个游戏 wad + {1} 个客户端 wad",
+    "en": "{0} game wads + {1} client wads"
+  },
+  "App.Log.ScopeClient": {
+    "zh": "{0} 个客户端 wad",
+    "en": "{0} client wads"
+  },
+  "App.Log.ScopeGame": {
+    "zh": "{0} 个 wad",
+    "en": "{0} wads"
+  },
+  "App.Log.SelfTest.CheckAll": {
+    "zh": "自检：勾选目录树里全部条目 → {0:N0} 个",
+    "en": "Self test: ticked every entry of the tree → {0:N0}"
+  },
+  "App.Log.SelfTest.NoEntry": {
+    "zh": "自检：没有匹配 {0} 的条目",
+    "en": "Self test: no entry matches {0}"
+  },
+  "App.Log.SelfTest.NoWad": {
+    "zh": "自检：没有匹配 {0} 的 wad",
+    "en": "Self test: no wad matches {0}"
+  },
+  "App.Log.TranscribeFailed": {
+    "zh": "转写 #{0} 失败：{1}",
+    "en": "Transcribing #{0} failed: {1}"
+  },
+  "App.Log.VgmstreamReady": {
+    "zh": "vgmstream 就绪：{0}",
+    "en": "vgmstream ready: {0}"
+  },
+  "App.Log.VoiceFallback": {
+    "zh": "{0} 里没有音频流，已改用同名的 {1}",
+    "en": "No audio stream in {0}, using the same-named {1} instead"
+  },
+  "App.Model.ClipStatus": {
+    "zh": "{0} · {1:F1}s · {2:F0}fps · {3} 条关节轨道",
+    "en": "{0} · {1:F1}s · {2:F0}fps · {3} joint tracks"
+  },
+  "App.Model.KindAnimation": {
+    "zh": "动画",
+    "en": "animation"
+  },
+  "App.Model.KindSkeleton": {
+    "zh": "骨骼",
+    "en": "skeleton"
+  },
+  "App.Model.KindTexture": {
+    "zh": "贴图",
+    "en": "texture"
+  },
+  "App.Model.NoAnimation": {
+    "zh": "无动画（绑定姿势）",
+    "en": "No animation (bind pose)"
+  },
+  "App.Model.NoSkeleton": {
+    "zh": "无骨骼（静态显示）",
+    "en": "No skeleton (static)"
+  },
+  "App.Model.NoSkeletonFile": {
+    "zh": "未找到骨骼文件，按静态模型显示（可手动选择 .skl）",
+    "en": "No skeleton file found — showing the static mesh (pick a .skl by hand)"
+  },
+  "App.Model.NoTexture": {
+    "zh": "无贴图（纯色）",
+    "en": "No texture (flat colour)"
+  },
+  "App.Model.PickAnimation": {
+    "zh": "选择动画文件（.anm）",
+    "en": "Choose an animation file (.anm)"
+  },
+  "App.Model.PickSkeleton": {
+    "zh": "选择骨骼文件（.skl）",
+    "en": "Choose a skeleton file (.skl)"
+  },
+  "App.Model.PickTexture": {
+    "zh": "选择贴图（.tex）",
+    "en": "Choose a texture (.tex)"
+  },
+  "App.Model.Playing": {
+    "zh": "{0} · {1:F1}s · {2:F0}fps · 播放中",
+    "en": "{0} · {1:F1}s · {2:F0}fps · playing"
+  },
+  "App.Model.SkeletonStatus": {
+    "zh": "骨骼 {0} 个关节 · 未播放动画，显示绑定姿势",
+    "en": "Skeleton with {0} joints · no animation playing, showing the bind pose"
+  },
+  "App.Model.Texture": {
+    "zh": "贴图：{0}",
+    "en": "Texture: {0}"
+  },
+  "App.Model.TextureNone": {
+    "zh": "贴图：没有可用的颜色贴图（该文件夹只有遮罩 / 加载图）",
+    "en": "Texture: no colour map available (the folder holds only masks or a loading screen)"
+  },
+  "App.Model.TextureParts": {
+    "zh": "{0}（{1}）",
+    "en": "{0} ({1})"
+  },
+  "App.Preview.Binary": {
+    "zh": "二进制数据，未识别出可预览的格式",
+    "en": "Binary data — no previewable format recognised"
+  },
+  "App.Preview.Empty": {
+    "zh": "内容为空",
+    "en": "The file is empty"
+  },
+  "App.Preview.Hint": {
+    "zh": "在中间的目录树里点一个文件即可预览：贴图 / 3D 模型 / 音频 / 文本",
+    "en": "Click a file in the tree to preview it: texture / 3D model / audio / text"
+  },
+  "App.Preview.ImageFailed": {
+    "zh": "无法显示这张图片",
+    "en": "This image cannot be shown"
+  },
+  "App.Preview.ModelFailed": {
+    "zh": "无法构建 3D 视图",
+    "en": "The 3D view cannot be built"
+  },
+  "App.Preview.Unsupported": {
+    "zh": "暂不支持预览这种文件",
+    "en": "This kind of file cannot be previewed yet"
+  },
+  "App.Speech.Batch": {
+    "zh": "批量转写 {0}/{1}…",
+    "en": "Transcribing {0}/{1}…"
+  },
+  "App.Speech.BatchDone": {
+    "zh": "批量转写完成：{0} 条，新转写 {1} 条，已有备注 {2} 条跳过",
+    "en": "Transcription finished: {0} streams, {1} newly transcribed, {2} already noted"
+  },
+  "App.Speech.BatchStopped": {
+    "zh": "已停止：完成 {0}/{1}",
+    "en": "Stopped: {0}/{1} done"
+  },
+  "App.Speech.Done": {
+    "zh": "已转写并写入备注",
+    "en": "Transcribed and saved into the note"
+  },
+  "App.Speech.LoadingModel": {
+    "zh": "正在加载语音识别模型…",
+    "en": "Loading the speech model…"
+  },
+  "App.Speech.ModelReady": {
+    "zh": "语音识别模型已就绪",
+    "en": "The speech model is ready"
+  },
+  "App.Speech.NoText": {
+    "zh": "没有识别出文字（可能是音效而非语音）",
+    "en": "Nothing was recognised — it may be a sound effect rather than speech"
+  },
+  "App.Speech.Preparing": {
+    "zh": "准备语音识别…",
+    "en": "Preparing speech recognition…"
+  },
+  "App.Speech.Stopped": {
+    "zh": "已停止转写",
+    "en": "Transcription stopped"
+  },
+  "App.Speech.Stopping": {
+    "zh": "正在停止…",
+    "en": "Stopping…"
+  },
+  "App.Status.AudioToolReady": {
+    "zh": "音频解码工具就绪",
+    "en": "Audio decoder ready"
+  },
+  "App.Status.BuildingNameIndex": {
+    "zh": "生成名称索引…",
+    "en": "Building the name index…"
+  },
+  "App.Status.Cancelled": {
+    "zh": "已取消",
+    "en": "Cancelled"
+  },
+  "App.Status.Cancelling": {
+    "zh": "正在取消…",
+    "en": "Cancelling…"
+  },
+  "App.Status.DownloadingAudioTool": {
+    "zh": "下载音频解码工具…",
+    "en": "Downloading the audio decoder…"
+  },
+  "App.Status.DownloadingClientHashes": {
+    "zh": "下载客户端哈希表…",
+    "en": "Downloading the client hash tables…"
+  },
+  "App.Status.DownloadingHashes": {
+    "zh": "下载哈希表…",
+    "en": "Downloading the hash tables…"
+  },
+  "App.Status.ExportPrefix": {
+    "zh": "导出目录前缀：{0}",
+    "en": "Export folder prefix: {0}"
+  },
+  "App.Status.ExportProgress": {
+    "zh": "导出 {0:N0}/{1:N0} · 成功 {2:N0} · 跳过 {3:N0} · {4}",
+    "en": "Exporting {0:N0}/{1:N0} · {2:N0} done · {3:N0} skipped · {4}"
+  },
+  "App.Status.ExportProgressShort": {
+    "zh": "导出 {0:N0}/{1:N0} · 成功 {2:N0} · 跳过 {3:N0}",
+    "en": "Exporting {0:N0}/{1:N0} · {2:N0} done · {3:N0} skipped"
+  },
+  "App.Status.ExportedTo": {
+    "zh": "已导出到 {0}",
+    "en": "Exported to {0}"
+  },
+  "App.Status.Exporting": {
+    "zh": "导出中…",
+    "en": "Exporting…"
+  },
+  "App.Status.ExportingCatalog": {
+    "zh": "按分类导出…",
+    "en": "Exporting by category…"
+  },
+  "App.Status.FirstRunHashes": {
+    "zh": "检查资源：下载哈希表（首次运行，约 230 MB，只下一次）…",
+    "en": "Checking resources: downloading the hash tables (first run, about 230 MB, once only)…"
+  },
+  "App.Status.HashMissingHint": {
+    "zh": "名称索引：未生成（条目将以哈希命名，点击「下载哈希表」）",
+    "en": "Name index: not built (entries keep hash names — click Download hash tables)"
+  },
+  "App.Status.HashNotBuilt": {
+    "zh": "名称索引：未生成",
+    "en": "Name index: not built"
+  },
+  "App.Status.HashProgress": {
+    "zh": "哈希表 {0}/{1} 个分片 · {2} / {3}",
+    "en": "Hash tables {0}/{1} parts · {2} / {3}"
+  },
+  "App.Status.HashReady": {
+    "zh": "名称索引：{0:N0} 条路径",
+    "en": "Name index: {0:N0} paths"
+  },
+  "App.Status.HashStillMissing": {
+    "zh": "名称索引：未生成（条目将以哈希命名，可在工具栏点「下载哈希表」重试）",
+    "en": "Name index: not built (entries keep hash names — retry Download hash tables in the toolbar)"
+  },
+  "App.Status.JumpMissing": {
+    "zh": "客户端包里没有这个文件：{0}",
+    "en": "No such file in the client archives: {0}"
+  },
+  "App.Status.Jumped": {
+    "zh": "已跳到 {0}",
+    "en": "Jumped to {0}"
+  },
+  "App.Status.LoadingNameIndex": {
+    "zh": "读取名称索引…",
+    "en": "Reading the name index…"
+  },
+  "App.Status.NoDataRoot": {
+    "zh": "请先填写游戏 Game\\DATA 目录",
+    "en": "Enter the game's Game\\DATA folder first"
+  },
+  "App.Status.NoGameFolder": {
+    "zh": "未找到游戏目录，请点「浏览」选到 …\\Game\\DATA",
+    "en": "No game folder found — click Browse and pick …\\Game\\DATA"
+  },
+  "App.Status.ReadingWad": {
+    "zh": "读取 {0} …",
+    "en": "Reading {0}…"
+  },
+  "App.Status.Ready": {
+    "zh": "就绪",
+    "en": "Ready"
+  },
+  "App.Status.ScanDone": {
+    "zh": "共 {0}，{1:N0} 个条目，用时 {2:F1}s",
+    "en": "{0}, {1:N0} entries in {2:F1}s"
+  },
+  "App.Status.ScanningWads": {
+    "zh": "扫描 wad 文件…",
+    "en": "Scanning wad files…"
+  },
+  "App.Status.SelectionAll": {
+    "zh": "已选 {0} 个 wad / 共 {1} 个",
+    "en": "{0} of {1} wads ticked"
+  },
+  "App.Status.SelectionFiltered": {
+    "zh": "已选 {0} / 显示 {1} / 共 {2} 个",
+    "en": "{0} ticked / {1} shown / {2} total"
+  },
+  "App.Status.SelectionZero": {
+    "zh": "已选 0 个 wad",
+    "en": "0 wads ticked"
+  },
+  "App.Status.TreeTotal": {
+    "zh": "共 {0:N0} 条",
+    "en": "{0:N0} entries"
+  },
+  "App.Status.TreeTruncated": {
+    "zh": "显示前 {0:N0} 条 / 共 {1:N0} 条（用搜索缩小范围）",
+    "en": "Showing the first {0:N0} of {1:N0} entries — narrow it with the search"
+  },
+  "App.Status.UnrecognizedRoot": {
+    "zh": "未能识别游戏目录：{0}（请选到 …\\Game\\DATA 或安装目录）",
+    "en": "That is not a game folder: {0} (pick …\\Game\\DATA or the install folder)"
+  },
+  "App.Status.WadLoaded": {
+    "zh": "{0}：{1:N0} 条目，已命名 {2:N0}（{3:F1}%）",
+    "en": "{0}: {1:N0} entries, {2:N0} named ({3:F1}%)"
+  }
+}

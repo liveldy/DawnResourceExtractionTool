@@ -1,0 +1,170 @@
+{
+  "About.Notice": {
+    "zh": "本项目只读取本机游戏资源、不修改游戏文件，也不分发任何 Riot Games 的素材；导出的资源版权归 Riot Games 所有，仅供个人学习与研究使用。",
+    "en": "This project only reads the game files already on this machine, never modifies them, and redistributes no Riot Games assets. Exported assets remain the property of Riot Games and are meant for personal study and research only."
+  },
+  "App.ReleaseDateUnknown": {
+    "zh": "未标注日期",
+    "en": "date unknown"
+  },
+  "App.Summary": {
+    "zh": "版本 {0} · {1} 发布",
+    "en": "Version {0} · released {1}"
+  },
+  "App.Title": {
+    "zh": "破晓资源提取工具",
+    "en": "Dawn Resource Extraction Tool"
+  },
+  "AudioFormat.Keep": {
+    "zh": "保留原始 wem / bnk",
+    "en": "keep wem / bnk"
+  },
+  "AudioFormat.Mp3": {
+    "zh": "转成 mp3（推荐）",
+    "en": "mp3 (recommended)"
+  },
+  "AudioFormat.Wav": {
+    "zh": "转成 wav（无损，体积大）",
+    "en": "wav (lossless, big)"
+  },
+  "Browse.Catalog": {
+    "zh": "按分类浏览",
+    "en": "Browse by category"
+  },
+  "Browse.Wad": {
+    "zh": "按 wad 浏览",
+    "en": "Browse by wad"
+  },
+  "Category.All": {
+    "zh": "全部类别",
+    "en": "All categories"
+  },
+  "Category.Audio": {
+    "zh": "音频 audio",
+    "en": "Audio"
+  },
+  "Category.Bin": {
+    "zh": "数据 bin",
+    "en": "Data (bin)"
+  },
+  "Category.Model": {
+    "zh": "模型 model",
+    "en": "Model"
+  },
+  "Category.Other": {
+    "zh": "其他 other",
+    "en": "Other"
+  },
+  "Category.Shader": {
+    "zh": "着色器 shader",
+    "en": "Shader"
+  },
+  "Category.Text": {
+    "zh": "文本 text",
+    "en": "Text"
+  },
+  "Category.Texture": {
+    "zh": "纹理 texture",
+    "en": "Texture"
+  },
+  "Category.Video": {
+    "zh": "视频 video",
+    "en": "Video"
+  },
+  "ExportScope.All": {
+    "zh": "全部 wad",
+    "en": "All wads"
+  },
+  "ExportScope.Checked": {
+    "zh": "当前 wad 选中的内容",
+    "en": "Ticked entries of the current wad"
+  },
+  "ExportScope.Current": {
+    "zh": "当前 wad",
+    "en": "Current wad"
+  },
+  "ExportScope.Selected": {
+    "zh": "选择的 wad",
+    "en": "Selected wads"
+  },
+  "Resource.AudioTool": {
+    "zh": "音频解码工具（vgmstream）",
+    "en": "Audio decoder (vgmstream)"
+  },
+  "Resource.Check.AllReady": {
+    "zh": "资源检查：全部就绪",
+    "en": "Resource check: everything ready"
+  },
+  "Resource.Check.Busy": {
+    "zh": "检查资源：下载 {0}…",
+    "en": "Checking resources: downloading {0}…"
+  },
+  "Resource.Check.Download": {
+    "zh": "下载资源：{0}",
+    "en": "Downloading {0}"
+  },
+  "Resource.Check.Log": {
+    "zh": "资源检查：{0}",
+    "en": "Resources: {0}"
+  },
+  "Resource.Check.NotReady": {
+    "zh": "资源未就绪：{0}（{1}，可稍后在界面上重试）",
+    "en": "{0} is not ready ({1}); try again from the window later"
+  },
+  "Resource.Check.Ready": {
+    "zh": "资源就绪：{0}",
+    "en": "Ready: {0}"
+  },
+  "Resource.Check.StatusReady": {
+    "zh": "资源就绪",
+    "en": "Resources ready"
+  },
+  "Resource.Hashes": {
+    "zh": "哈希表与名称索引",
+    "en": "Hash tables and name index"
+  },
+  "Resource.SpeechModel": {
+    "zh": "语音识别模型（whisper base，141 MB）",
+    "en": "Speech model (whisper base, 141 MB)"
+  },
+  "Selection.SelectAll": {
+    "zh": "全选",
+    "en": "Select all"
+  },
+  "Selection.SelectNone": {
+    "zh": "全不选",
+    "en": "Select none"
+  },
+  "Toolbar.Language.Hint": {
+    "zh": "界面语言：{0}（点一下切到{1}）",
+    "en": "Language: {0} (click for {1})"
+  },
+  "Toolbar.Language.Log": {
+    "zh": "界面语言：{0}",
+    "en": "Language: {0}"
+  },
+  "Toolbar.Theme.Dark": {
+    "zh": "黑夜",
+    "en": "Dark"
+  },
+  "Toolbar.Theme.Detail.System": {
+    "zh": "跟随系统（当前系统是{0}）",
+    "en": "System ({0} now)"
+  },
+  "Toolbar.Theme.Hint": {
+    "zh": "界面主题：{0}（点一下切到{1}）",
+    "en": "Theme: {0} (click for {1})"
+  },
+  "Toolbar.Theme.Light": {
+    "zh": "白天",
+    "en": "Light"
+  },
+  "Toolbar.Theme.Log": {
+    "zh": "界面主题：{0}",
+    "en": "Theme: {0}"
+  },
+  "Toolbar.Theme.System": {
+    "zh": "跟随系统",
+    "en": "System"
+  }
+}

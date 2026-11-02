@@ -1,10 +1,10 @@
-# Builds src\LolDataExtractor.App\Assets\logo.ico from logo.png.
+# Builds src\DawnResourceExtractionTool.App\Assets\logo.ico from logo.png.
 # Frames are stored as 32-bit BMP/DIB (not PNG) so that every icon reader -
 # Explorer, the taskbar, System.Drawing.Icon and WPF - decodes them correctly.
 # ASCII only: Windows PowerShell reads BOM-less scripts as ANSI.
 param(
     [string]$Source = (Join-Path $PSScriptRoot '..\logo.png'),
-    [string]$Destination = (Join-Path $PSScriptRoot '..\src\LolDataExtractor.App\Assets\logo.ico')
+    [string]$Destination = (Join-Path $PSScriptRoot '..\src\DawnResourceExtractionTool.App\Assets\logo.ico')
 )
 
 $ErrorActionPreference = 'Stop'

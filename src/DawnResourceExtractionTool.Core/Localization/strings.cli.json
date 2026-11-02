@@ -1,0 +1,262 @@
+{
+  "Cli.Catalog.Built": {
+    "zh": "分类索引：{0:N0} 个条目，{1:N0} 个组，用时 {2:F1}s",
+    "en": "Catalog: {0:N0} entries, {1:N0} groups, {2:F1}s"
+  },
+  "Cli.Catalog.NoSection": {
+    "zh": "没有这个分类：{0}（可用：{1}）",
+    "en": "No such section: {0} (available: {1})"
+  },
+  "Cli.Catalog.Scanning": {
+    "zh": "扫描 {0} 个 wad（{1:N0} 个条目），{2:F1}s",
+    "en": "Scanned {0} wads ({1:N0} entries) in {2:F1}s"
+  },
+  "Cli.Catalog.SearchResult": {
+    "zh": "== 搜索「{0}」：{1:N0} 个命中，用时 {2} ms",
+    "en": "== Search \"{0}\": {1:N0} hits in {2} ms"
+  },
+  "Cli.Catalog.SectionGroups": {
+    "zh": "== {0} 的组（前 {1} 个）",
+    "en": "== Groups of {0} (first {1})"
+  },
+  "Cli.Catalog.SectionLine": {
+    "zh": "  {0,-6}{1,10:N0} 个文件 · {2,5:N0} 个组 · {3,6:N0} 个条目   {4}",
+    "en": "  {0,-16}{1,10:N0} files · {2,5:N0} groups · {3,6:N0} entries   {4}"
+  },
+  "Cli.Catalog.TopGroups": {
+    "zh": "== 文件最多的 {0} 个组",
+    "en": "== The {0} groups with the most files"
+  },
+  "Cli.Error": {
+    "zh": "错误: {0}",
+    "en": "Error: {0}"
+  },
+  "Cli.Extract.DryRunLine": {
+    "zh": "{0,-40} {1,7} 个条目 {2,12}",
+    "en": "{0,-40} {1,7} entries {2,12}"
+  },
+  "Cli.Extract.Failed": {
+    "zh": "  失败: {0}",
+    "en": "  failed: {0}"
+  },
+  "Cli.Extract.Manifest": {
+    "zh": "清单: {0}",
+    "en": "Manifest: {0}"
+  },
+  "Cli.Extract.OutputMissing": {
+    "zh": "请用 --out 指定导出目录",
+    "en": "Point --out at the export folder"
+  },
+  "Cli.Extract.Preparing": {
+    "zh": "准备导出 {0} 个 wad → {1}（线程 {2}）",
+    "en": "Exporting {0} wads → {1} ({2} threads)"
+  },
+  "Cli.Extract.PreparingMedia": {
+    "zh": "准备只导出媒体（PNG + MP3）{0} 个 wad → {1}（线程 {2}）",
+    "en": "Exporting media only (PNG + MP3) from {0} wads → {1} ({2} threads)"
+  },
+  "Cli.Extract.Progress": {
+    "zh": "[{0,5:F1}%] {1}/{2} 导出 {3} 跳过 {4} {5} {6}",
+    "en": "[{0,5:F1}%] {1}/{2} exported {3} skipped {4} {5} {6}"
+  },
+  "Cli.Hashes.ClientFailed": {
+    "zh": "客户端哈希表未更新: {0}",
+    "en": "The client hash table was not updated: {0}"
+  },
+  "Cli.Hashes.ClientIndex": {
+    "zh": "客户端名称索引: {0:N0} 条 → {1}",
+    "en": "Client name index: {0:N0} entries → {1}"
+  },
+  "Cli.Hashes.Directory": {
+    "zh": "哈希表目录 {0}: {1} 个文件，{2}",
+    "en": "Hash table folder {0}: {1} files, {2}"
+  },
+  "Cli.Hashes.Index": {
+    "zh": "名称索引 {0}: {1:N0} 条，{2}",
+    "en": "Name index {0}: {1:N0} entries, {2}"
+  },
+  "Cli.Hashes.NoIndex": {
+    "zh": "名称索引未生成",
+    "en": "The name index has not been built yet"
+  },
+  "Cli.Hashes.Progress": {
+    "zh": "{0,-8} {1}/{2} 文件 {3,5:F1}% {4}/{5}",
+    "en": "{0,-8} {1}/{2} files {3,5:F1}% {4}/{5}"
+  },
+  "Cli.Hashes.Ready": {
+    "zh": "哈希表就绪: 下载 {0} 个、跳过 {1} 个，共 {2}，目录 {3}",
+    "en": "Hash tables ready: {0} downloaded, {1} skipped, {2} in total, folder {3}"
+  },
+  "Cli.Hashes.UnknownAction": {
+    "zh": "未知 hashes 子命令: {0}（可用: fetch, build, stats）",
+    "en": "Unknown hashes subcommand: {0} (available: fetch, build, stats)"
+  },
+  "Cli.Help": {
+    "zh": "破晓资源提取工具 (dawn)\n\n用法: dawn <命令> [选项]\n\n  info                            显示安装目录、哈希表与名称索引状态\n  scan   [--root 路径] [--json 文件]\n                                  扫描全部 wad，输出条目数量与压缩方式\n  list   <wad 名称或通配符> [--root 路径] [--filter 通配符] [--category 类别]\n         [--ext 扩展名] [--path 目录前缀] [--limit N] [--json 文件]\n                                  列出某个 wad（或匹配的一组 wad）的条目\n  extract [--root 路径] [--wad 通配符] [--out 目录] [--filter 通配符]\n         [--category 类别] [--ext 扩展名] [--path 目录前缀] [--min-size 字节] [--max-size 字节]\n         [--threads N] [--flat] [--overwrite] [--dry-run] [--no-unnamed]\n         [--audio mp3|wav|keep] [--raw]\n                                  批量导出条目（默认跳过已导出过的文件）\n                                  贴图默认转 PNG，音频默认转 MP3；--audio keep 或\n                                  --raw 保留 wad 里的原始格式\n  media  [--root 路径] [--wad 通配符] [--out 目录] [--filter 通配符]\n         [--path 目录前缀] [--flat] [--overwrite] [--dry-run]\n                                  只导出二次解析后的媒体：贴图转 PNG，音频转 MP3\n                                  其余条目（模型、数据等）不导出\n  catalog [--root 路径] [--json 文件] [--bucket 名称] [--search 文字] [--limit N]\n                                  按客户端数据表把条目归到 英雄/皮肤/装备/符文/…，\n                                  输出各分类的条目数（--bucket 只看一类，\n                                  --search 试搜路径，--json 存明细）\n  hashes fetch [--token T] [--dir 目录] [--build]\n                                  下载 CommunityDragon 哈希表（约 217MB，9 个分片）\n  hashes build [--dir 目录] [--out 文件] [--root 路径 --scope]\n                                  由文本哈希表生成二进制名称索引（--scope 只保留本地 wad 用到的项）\n  hashes stats                    统计哈希表与索引规模\n\n公共选项: --data-dir 目录   覆盖工具数据目录（存放哈希表与索引）\n          --root 路径       游戏 DATA 目录（默认读取上一次使用的配置）\n          --lang zh|en      输出语言，默认 zh\n\n--root 指到游戏 DATA 时只扫游戏包；指到安装根目录时，LeagueClient\\plugins 下的\n客户端包（英雄/装备文本、头像、原画）一起列出。\n\n类别取值: texture, model, audio, video, bin, text, shader, other",
+    "en": "Dawn Resource Extraction Tool (dawn)\n\nUsage: dawn <command> [options]\n\n  info                            Show the install folder and the state of the hash tables and name index\n  scan   [--root path] [--json file]\n                                  Scan every wad and report the entry count and the storage modes\n  list   <wad name or wildcard> [--root path] [--filter wildcard] [--category name]\n         [--ext extension] [--path folder prefix] [--limit N] [--json file]\n                                  List the entries of one wad (or of a matching set of wads)\n  extract [--root path] [--wad wildcard] [--out folder] [--filter wildcard]\n         [--category name] [--ext extension] [--path folder prefix] [--min-size bytes] [--max-size bytes]\n         [--threads N] [--flat] [--overwrite] [--dry-run] [--no-unnamed]\n         [--audio mp3|wav|keep] [--raw]\n                                  Export entries in bulk (files already exported are skipped)\n                                  Textures become PNG and audio becomes MP3 by default; --audio keep\n                                  or --raw keeps the format the wad holds\n  media  [--root path] [--wad wildcard] [--out folder] [--filter wildcard]\n         [--path folder prefix] [--flat] [--overwrite] [--dry-run]\n                                  Export the second-pass media only: textures as PNG, audio as MP3;\n                                  everything else (models, data, …) stays behind\n  catalog [--root path] [--json file] [--bucket name] [--search text] [--limit N]\n                                  Sort the entries into champion / skin / item / rune / … by the\n                                  client tables and report how many landed in each (--bucket shows\n                                  one section, --search tries a path, --json saves the details)\n  hashes fetch [--token T] [--dir folder] [--build]\n                                  Download the CommunityDragon hash tables (about 217MB, 9 parts)\n  hashes build [--dir folder] [--out file] [--root path --scope]\n                                  Build the binary name index from the text tables (--scope keeps\n                                  only the entries the local wads use)\n  hashes stats                    Report the size of the hash tables and the index\n\nCommon options: --data-dir folder   Overrides the tool data folder (hash tables and index)\n                --root path         Game DATA folder (defaults to the last used one)\n                --lang zh|en        Output language (zh by default)\n\nA --root inside the game DATA scans the game wads only; a --root at the install folder also\nlists the client wads below LeagueClient\\plugins (champion and item text, icons, splash art).\n\nCategories: texture, model, audio, video, bin, text, shader, other"
+  },
+  "Cli.Index.Loaded": {
+    "zh": "载入 {0:N0} 条路径，用时 {1:F1}s",
+    "en": "Loaded {0:N0} paths in {1:F1}s"
+  },
+  "Cli.Index.NoTables": {
+    "zh": "目录 {0} 中没有哈希表文本文件，请先运行 dawn hashes fetch",
+    "en": "No hash table text file in {0}; run dawn hashes fetch first"
+  },
+  "Cli.Index.Scoped": {
+    "zh": "本地 wad 需要 {0:N0} 个 hash，命中 {1:N0} 条路径（{2:F1}%）",
+    "en": "The local wads need {0:N0} hashes; {1:N0} paths matched ({2:F1}%)"
+  },
+  "Cli.Index.Written": {
+    "zh": "名称索引已写入 {0}（{1:N0} 条，{2}），用时 {3:F1}s",
+    "en": "Name index written to {0} ({1:N0} entries, {2}) in {3:F1}s"
+  },
+  "Cli.Info.Built": {
+    "zh": "(已生成)",
+    "en": "(built)"
+  },
+  "Cli.Info.ClientNames": {
+    "zh": "客户端名称索引 : {0} {1}",
+    "en": "Client names     : {0} {1}"
+  },
+  "Cli.Info.ClientNotIncluded": {
+    "zh": "(未包含，--root 指到安装根目录即可)",
+    "en": "(not included; point --root at the install folder)"
+  },
+  "Cli.Info.ClientPlugins": {
+    "zh": "客户端插件目录 : {0}",
+    "en": "Client plugins   : {0}"
+  },
+  "Cli.Info.ClientWadCount": {
+    "zh": "客户端 wad 数量 : {0}",
+    "en": "Client wads      : {0}"
+  },
+  "Cli.Info.ClientWadSize": {
+    "zh": "客户端 wad 大小 : {0}",
+    "en": "Client wad size  : {0}"
+  },
+  "Cli.Info.DataDirectory": {
+    "zh": "工具数据目录   : {0}",
+    "en": "Tool data folder : {0}"
+  },
+  "Cli.Info.GameData": {
+    "zh": "游戏 DATA 目录 : {0}",
+    "en": "Game DATA folder : {0}"
+  },
+  "Cli.Info.HashDirectory": {
+    "zh": "哈希表目录     : {0}",
+    "en": "Hash tables      : {0}"
+  },
+  "Cli.Info.NameCount": {
+    "zh": "名称索引条目   : {0:N0}",
+    "en": "Name index size  : {0:N0}"
+  },
+  "Cli.Info.NameIndex": {
+    "zh": "名称索引       : {0} {1}",
+    "en": "Name index       : {0} {1}"
+  },
+  "Cli.Info.NotBuilt": {
+    "zh": "(未生成)",
+    "en": "(missing)"
+  },
+  "Cli.Info.NotLocated": {
+    "zh": "(未找到)",
+    "en": "(not found)"
+  },
+  "Cli.Info.NotSet": {
+    "zh": "(未设置)",
+    "en": "(not set)"
+  },
+  "Cli.Info.OutputRoot": {
+    "zh": "输出目录       : {0}",
+    "en": "Output folder    : {0}"
+  },
+  "Cli.Info.Title": {
+    "zh": "破晓资源提取工具 {0}（{1} 发布）",
+    "en": "Dawn Resource Extraction Tool {0} (released {1})"
+  },
+  "Cli.Info.WadCount": {
+    "zh": "wad 数量       : {0}",
+    "en": "Wads             : {0}"
+  },
+  "Cli.Info.WadSize": {
+    "zh": "wad 总大小     : {0}",
+    "en": "Wad size         : {0}"
+  },
+  "Cli.Json.Written": {
+    "zh": "已写入 {0}",
+    "en": "Written {0}"
+  },
+  "Cli.List.More": {
+    "zh": "  … 另有 {0} 条，使用 --limit 调整",
+    "en": "  … {0} more, raise --limit to see them"
+  },
+  "Cli.List.NoMatch": {
+    "zh": "没有匹配 {0} 的 wad",
+    "en": "No wad matches {0}"
+  },
+  "Cli.List.WadHeader": {
+    "zh": "== {0} ({1}/{2} 个条目)",
+    "en": "== {0} ({1}/{2} entries)"
+  },
+  "Cli.Names.ClientReadFailed": {
+    "zh": "客户端名称索引读取失败: {0}",
+    "en": "The client name index cannot be read: {0}"
+  },
+  "Cli.Names.Loaded": {
+    "zh": "已载入 {0} 条路径",
+    "en": "Loaded {0} paths"
+  },
+  "Cli.Names.Missing": {
+    "zh": "提示: 未找到名称索引，条目将以哈希命名。请先运行 dawn hashes fetch --build",
+    "en": "Hint: no name index found, entries will be named by hash. Run dawn hashes fetch --build first"
+  },
+  "Cli.Names.ParsingTables": {
+    "zh": "正在解析文本哈希表（{0} 个文件）…",
+    "en": "Reading the text hash tables ({0} files)…"
+  },
+  "Cli.Names.ReadFailed": {
+    "zh": "名称索引读取失败: {0}",
+    "en": "The name index cannot be read: {0}"
+  },
+  "Cli.Root.Hint": {
+    "zh": "请用 --root 指定，例如 --root \"D:\\WeGameApps\\英雄联盟（含经典模式）\\Game\\DATA\"",
+    "en": "Point --root at it, e.g. --root \"C:\\Riot Games\\League of Legends\\Game\\DATA\""
+  },
+  "Cli.Root.Unrecognized": {
+    "zh": "未能识别游戏目录: {0}",
+    "en": "Could not recognise the game folder: {0}"
+  },
+  "Cli.Scan.ClientScanning": {
+    "zh": "客户端包 {0} …",
+    "en": "Client wads {0}…"
+  },
+  "Cli.Scan.ColumnEntries": {
+    "zh": "条目",
+    "en": "entries"
+  },
+  "Cli.Scan.ColumnStorage": {
+    "zh": "压缩方式",
+    "en": "storage"
+  },
+  "Cli.Scan.ColumnUnpacked": {
+    "zh": "展开大小",
+    "en": "unpacked"
+  },
+  "Cli.Scan.ColumnWad": {
+    "zh": "wad",
+    "en": "wad"
+  },
+  "Cli.Scan.Scanning": {
+    "zh": "扫描 {0} …",
+    "en": "Scanning {0}…"
+  },
+  "Cli.Scan.Summary": {
+    "zh": "共 {0} 个 wad，{1:N0} 个条目，用时 {2:F1}s",
+    "en": "{0} wads, {1:N0} entries, {2:F1}s"
+  },
+  "Cli.UnknownCommand": {
+    "zh": "未知命令: {0}",
+    "en": "Unknown command: {0}"
+  }
+}
